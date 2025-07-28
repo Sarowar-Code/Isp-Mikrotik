@@ -1,19 +1,24 @@
 {
-    "name": "isp-mikrotik-web-panel",
-    "version": "1.0.0",
-    "description": "Isp Mikrotik",
-    "keywords": [
-        "javascript",
-        "isp"
-    ],
-    "license": "ISC",
-    "author": "Sarowar",
-    "type": "module",
-    "main": "index.js",
-    "scripts": {
-        "dev": "nodemon src/index.js"
-    },
-    "devDependencies": {
-        "nodemon": "^3.1.10"
-    }
+  "name": "isp-mikrotik-web-panel",
+  "version": "1.0.0",
+  "description": "Isp Mikrotik",
+  "keywords": [
+    "javascript",
+    "isp"
+  ],
+  "license": "ISC",
+  "author": "Sarowar",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.5"
+  }
 }
