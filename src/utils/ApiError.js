@@ -11,6 +11,7 @@ class ApiError extends Error {
     this.success = false;
     this.errors = errors;
 
+    // track which files have problem
     if (stack) {
       this.stack = stack;
     } else {
