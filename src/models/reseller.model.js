@@ -1,41 +1,5 @@
 import bcrypt from "bcrypt";
-import { model, Schema } from "mongoose";
-
-const packageSchema = new Schema(
-  {
-    name: {
-      type: String,
-      required: true, // Friendly name in reseller panel
-      trim: true,
-    },
-    mikrotikProfileName: {
-      type: String,
-      required: true, // Must match PPP profile name in MikroTik
-      trim: true,
-    },
-    speedLimitUp: {
-      type: String,
-      required: true, // e.g., "5M"
-    },
-    speedLimitDown: {
-      type: String,
-      required: true, // e.g., "5M"
-    },
-    quotaMB: {
-      type: Number,
-      required: true, // Client data quota
-    },
-    price: {
-      type: Number,
-      required: true, // Reseller price for this package
-    },
-    validityDays: {
-      type: Number,
-      required: true, // Package validity period
-    },
-  },
-  { _id: false }
-);
+import { Schema, model } from "mongoose";
 
 const resellerSchema = new Schema(
   {
@@ -64,30 +28,42 @@ const resellerSchema = new Schema(
     },
     avatar: {
       type: String,
-      default: "https://example.com/default-avatar.png", // Default avatar if none
+      required: true, // Placeholder
     },
     totalQuotaMB: {
       type: Number,
-      required: true,
+      required: true, // Total data assigned by Admin
     },
     usedQuotaMB: {
       type: Number,
-      default: 0,
+      default: 0, // Used portion
     },
-    role: {
-      type: String,
-      enum: ["Reseller"],
-      default: "Reseller",
-    },
-    packages: [packageSchema], // Embedded custom packages
     refreshToken: {
       type: String,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SubscriptionPlan",
+      required: true,
+    },
+    currentClientCount: {
+      type: Number,
+      default: 0,
+    },
+    subscriptionExpiry: {
+      type: Date,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Suspended"],
+      default: "Active",
     },
   },
   { timestamps: true }
 );
 
-// Password hashing
+// 🔒 Hash password before save
 resellerSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);

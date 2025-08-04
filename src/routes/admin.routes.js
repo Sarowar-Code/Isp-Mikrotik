@@ -3,6 +3,6 @@ import { registerAdmin } from "../controllers/admin.controller.js";
 
 const router = Router();
 
-router.route("/setup").post(registerAdmin);
+router.route("/register").post(registerAdmin);
 
 export default router;
