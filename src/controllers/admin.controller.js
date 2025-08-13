@@ -32,11 +32,4 @@ const registerAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, createdAdmin, "Admin created successfully"));
 });
 
-const loginAdmin = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    throw new ApiError(400, "email and password are required");
-  }
-});
-
 export { registerAdmin };
