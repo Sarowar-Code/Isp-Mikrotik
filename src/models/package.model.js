@@ -2,50 +2,54 @@ import { model, Schema } from "mongoose";
 
 const packageSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: true, // Friendly name in reseller panel
-      trim: true,
+    createdByAdmin: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+      required: true,
     },
-    mikrotikProfileName: {
-      type: String,
-      required: true, // Must match PPP profile name in MikroTik
-      trim: true,
-    },
-    speedLimitUp: {
-      type: String,
-      required: true, // e.g., "5M"
-    },
-    speedLimitDown: {
-      type: String,
-      required: true, // e.g., "5M"
-    },
-    quotaMB: {
-      type: Number,
-      required: true, // Client data quota
-    },
-    price: {
-      type: Number,
-      required: true, // Reseller price for this package
-    },
-    validityDays: {
-      type: Number,
-      required: true, // Package validity period
-    },
-  },
-  { _id: false }
-);
-
-const resellerPackageSchema = new Schema(
-  {
     resellerId: {
       type: Schema.Types.ObjectId,
       ref: "Reseller",
       required: true,
     },
-    packages: [packageSchema],
+    // Identification
+    name: {
+      type: String,
+      required: true,
+    },
+    // Commercial
+    price: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      default: "BDT",
+    },
+    billingCycle: {
+      type: String,
+      default: "monthly",
+    },
+    validityDays: { type: Number, default: 30 },
+
+    // Technical
+    bandwidthUp: {
+      type: Number,
+      required: true,
+    }, // Mbps
+    bandwidthDown: {
+      type: Number,
+      required: true,
+    }, // Mbps
+    mikrotikProfile: {
+      type: String,
+      required: true,
+    },
+
+    // Management
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-export const ResellerPackage = model("ResellerPackage", resellerPackageSchema);
+export const Package = model("Package", packageSchema);
