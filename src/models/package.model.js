@@ -2,6 +2,7 @@ import { model, Schema } from "mongoose";
 
 const packageSchema = new Schema(
   {
+    // References
     createdByAdmin: {
       type: Schema.Types.ObjectId,
       ref: "Admin",
@@ -12,44 +13,59 @@ const packageSchema = new Schema(
       ref: "Reseller",
       required: true,
     },
+    mikrotikRouterId: {
+      type: Schema.Types.ObjectId,
+      ref: "Router",
+      required: true,
+    },
+
     // Identification
     name: {
       type: String,
       required: true,
+      trim: true,
     },
+
     // Commercial
     price: {
       type: Number,
       required: true,
-    },
-    currency: {
-      type: String,
-      default: "BDT",
+      min: 0,
     },
     billingCycle: {
       type: String,
       default: "monthly",
     },
-    validityDays: { type: Number, default: 30 },
 
-    // Technical
+    // Technical / MikroTik
     bandwidthUp: {
       type: Number,
       required: true,
-    }, // Mbps
+      min: 1,
+    },
     bandwidthDown: {
       type: Number,
       required: true,
-    }, // Mbps
+      min: 1,
+    },
     mikrotikProfile: {
       type: String,
       required: true,
     },
+    remoteAddressPool: {
+      type: String,
+      required: true, // name of the pool on the router
+    },
 
     // Management
-    isActive: { type: Boolean, default: true },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
+
+packageSchema.index({ resellerId: 1, name: 1 }, { unique: true });
 
 export const Package = model("Package", packageSchema);

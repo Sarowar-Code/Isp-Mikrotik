@@ -12,6 +12,12 @@ const pppClientSchema = new Schema(
       required: true,
       trim: true,
     },
+    userId: {
+      type: String,
+      unique: true,
+      required: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: true,
@@ -77,12 +83,6 @@ const pppClientSchema = new Schema(
       type: Boolean,
       default: false, // false = auto-detect via MikroTik
     },
-    userId: {
-      type: String,
-      unique: true,
-      required: true,
-      trim: true,
-    },
     service: {
       type: String,
       enum: ["pppoe", "hotspot", "dhcp", "static"],
@@ -92,6 +92,10 @@ const pppClientSchema = new Schema(
     package: {
       type: Schema.Types.ObjectId,
       ref: "Package",
+      required: true,
+    },
+    paymentDeadline: {
+      type: Date,
       required: true,
     },
   },
