@@ -88,6 +88,7 @@ adminSchema.methods.generateAccessToken = function () {
       _id: this._id,
       email: this.email,
       fullName: this.fullName,
+      role: this.role,
     },
     process.env.ADMIN_ACCESS_TOKEN_SECRET,
     {
@@ -100,6 +101,7 @@ adminSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
+      role: this.role,
     },
     process.env.ADMIN_REFRESH_TOKEN_SECRET,
     {

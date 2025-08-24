@@ -71,7 +71,7 @@ const resellerSchema = new Schema(
     },
     role: {
       type: String,
-      default: "reseller",
+      default: "Reseller",
     },
     routerId: {
       type: Schema.Types.ObjectId,
@@ -98,6 +98,7 @@ resellerSchema.methods.generateAccessToken = function () {
       _id: this._id,
       email: this.email,
       fullName: this.fullName,
+      role: this.role,
     },
     process.env.RESELLER_ACCESS_TOKEN_SECRET,
     {
@@ -110,6 +111,7 @@ resellerSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
+      role: this.role,
     },
     process.env.RESELLER_REFRESH_TOKEN_SECRET,
     {

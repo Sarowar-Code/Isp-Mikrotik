@@ -27,7 +27,7 @@ const superAdminSchema = new Schema(
     },
     role: {
       type: String,
-      default: "superAdmin",
+      default: "SuperAdmin",
     },
   },
 
@@ -48,10 +48,11 @@ superAdminSchema.methods.generateAccessToken = function () {
       _id: this._id,
       email: this.email,
       fullName: this.fullName,
+      role: this.role,
     },
-    process.env.ACCESS_TOKEN_SECRET,
+    process.env.SUPERADMIN_ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.SUPERADMIN_ACCESS_TOKEN_EXPIRY,
     }
   );
 };
@@ -60,10 +61,11 @@ superAdminSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
+      role: this.role,
     },
-    process.env.REFRESH_TOKEN_SECRET,
+    process.env.SUPERADMIN_REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+      expiresIn: process.env.SUPERADMIN_REFRESH_TOKEN_EXPIRY,
     }
   );
 };

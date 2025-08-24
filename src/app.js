@@ -17,9 +17,10 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // routes import
-import adminRouter from "./routes/admin.routes.js";
+import superAdminRouter from "./routes/superAdmin.routes.js";
 
-// routes declaration
-app.use("/api/v1/admin", adminRouter);
+// routes declaration ====><====
+// SuperAmin
+app.use("/api/v1/superAdmin", superAdminRouter);
 
 export { app };
