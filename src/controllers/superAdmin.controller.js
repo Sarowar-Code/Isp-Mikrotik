@@ -1,7 +1,9 @@
+import jwt from "jsonwebtoken";
 import { SuperAdmin } from "../models/superAdmin.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { cookieOptions } from "../utils/cookieOptions.js";
 
 const generateAccessAndRefreshTokens = async (id) => {
   try {
@@ -95,8 +97,8 @@ const loginSuperAdmin = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -120,17 +122,76 @@ const logoutSuperAdmin = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  const options = {
-    // cookies options
-    httpOnly: true,
-    secure: true,
-  };
-
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", cookieOptions)
+    .clearCookie("refreshToken", cookieOptions)
     .json(new ApiResponse(200, {}, "User Logged Out"));
 });
 
-export { loginSuperAdmin, logoutSuperAdmin, registerSuperAdmin };
+const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
+  // ** Get Current User Controller **/
+  // return current user details from req.user **/
+  // return response **
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        req.auth,
+        "Current user details fetched successfully"
+      )
+    );
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body?.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.SUPERADMIN_REFRESH_TOKEN_SECRET
+    );
+
+    const superAdmin = await SuperAdmin.findById(decodedToken._id);
+
+    if (!superAdmin) {
+      throw new ApiError(401, "Invalid refresh token - superAdmin not found");
+    }
+
+    if (superAdmin.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, "Refresh token expired or used");
+    }
+
+    const { accessToken, newRefreshToken } =
+      await generateAccessAndRefreshTokens(superAdmin._id);
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "Access token refreshed successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
+  }
+});
+
+export {
+  getCurrentSuperAdmin,
+  loginSuperAdmin,
+  logoutSuperAdmin,
+  refreshAccessToken,
+  registerSuperAdmin,
+};
