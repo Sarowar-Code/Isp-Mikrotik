@@ -146,12 +146,16 @@ const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
+  console.log(req.cookies);
+
   const incomingRefreshToken =
-    req.cookies?.refreshToken || req.body?.refreshToken;
+    req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Unauthorized request");
   }
+
+  console.log("incomingRefreshToken", incomingRefreshToken); // coming correctly
 
   try {
     const decodedToken = jwt.verify(
@@ -169,8 +173,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Refresh token expired or used");
     }
 
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefreshTokens(superAdmin._id);
+
+    console.log("newRefreshToken", newRefreshToken); // showing undefined
 
     return res
       .status(200)
@@ -179,12 +185,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { accessToken, refreshToken: newRefreshToken },
+          { accessToken, refreshToken: newRefreshToken }, // returning accesstoken only,
           "Access token refreshed successfully"
         )
       );
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token");
+    throw new ApiError(401, "Invalid refresh token");
   }
 });
 

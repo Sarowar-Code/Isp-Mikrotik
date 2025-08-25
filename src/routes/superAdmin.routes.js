@@ -13,7 +13,7 @@ const router = Router();
 router.route("/registerSuperAdmin").post(registerSuperAdmin);
 router.route("/loginSuperAdmin").post(loginSuperAdmin);
 
-// Secured Routes
+// Secured Routes - Login required
 router.route("/logoutSuperAdmin").post(verifyJWT, logoutSuperAdmin);
 router.route("/getCurrentSuperAdmin").post(verifyJWT, getCurrentSuperAdmin);
 router.route("/refresh-token").post(refreshAccessToken);
