@@ -20,7 +20,7 @@ const adminSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true, // fixed typo
+      lowercase: true,
       trim: true,
       index: true,
     },
@@ -29,33 +29,47 @@ const adminSchema = new Schema(
       required: [true, "Password is required"],
       minlength: 5,
     },
+    avatar: {
+      // it can be Logo/Profile picture
+      type: String,
+      default: null,
+    },
     contact: {
       type: String,
       required: true,
+      index: true,
     },
     whatsapp: {
       type: String,
       required: true,
+      index: true,
     },
     nid: {
-      type: Number,
+      type: String,
       required: true,
+      trim: true,
     },
     address: {
-      type: String,
-      required: true,
-    },
-    thana: {
-      type: String,
-      required: true,
-    },
-    district: {
-      type: String,
-      required: true,
-    },
-    division: {
-      type: String,
-      required: true,
+      thana: {
+        type: String,
+        required: true,
+      },
+      houseName: {
+        type: String,
+        required: true,
+      },
+      street: {
+        type: String,
+        required: true,
+      },
+      district: {
+        type: String,
+        required: true,
+      },
+      division: {
+        type: String,
+        required: true,
+      },
     },
     refreshToken: {
       type: String,
