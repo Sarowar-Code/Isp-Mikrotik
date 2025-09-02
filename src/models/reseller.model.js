@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Schema, model } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const resellerSchema = new Schema(
   {
@@ -83,6 +84,8 @@ const resellerSchema = new Schema(
   },
   { timestamps: true }
 );
+
+resellerSchema.plugin(mongooseAggregatePaginate);
 
 // 🔒 Hash password before save
 

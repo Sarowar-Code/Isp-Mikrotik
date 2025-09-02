@@ -32,7 +32,6 @@ const adminSchema = new Schema(
     avatar: {
       // it can be Logo/Profile picture
       type: String,
-      default: null,
     },
     contact: {
       type: String,
@@ -73,11 +72,6 @@ const adminSchema = new Schema(
     },
     refreshToken: {
       type: String,
-    },
-    routerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Router",
-      required: true,
     },
     role: {
       type: String,

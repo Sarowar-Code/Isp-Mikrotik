@@ -45,17 +45,22 @@ const pppClientSchema = new Schema(
     },
     address: {
       thana: {
-        // as reseller
+        type: String,
+        required: true,
+      },
+      houseName: {
+        type: String,
+        required: true,
+      },
+      street: {
         type: String,
         required: true,
       },
       district: {
-        // as reseller
         type: String,
         required: true,
       },
       division: {
-        // as reseller
         type: String,
         required: true,
       },

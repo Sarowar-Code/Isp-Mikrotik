@@ -4,29 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { cookieOptions } from "../utils/cookieOptions.js";
-
-const generateAccessAndRefreshTokens = async (id) => {
-  try {
-    const superAdmin = await SuperAdmin.findById(id);
-
-    if (!superAdmin) {
-      throw new ApiError(404, "SuperAdmin not found");
-    }
-
-    const accessToken = superAdmin.generateAccessToken();
-    const refreshToken = superAdmin.generateRefreshToken();
-
-    superAdmin.refreshToken = refreshToken;
-    await superAdmin.save({ validateBeforeSave: false });
-
-    return { accessToken, refreshToken };
-  } catch (error) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating access and refresh token"
-    );
-  }
-};
+import { generateAccessAndRefreshTokens } from "../utils/generateTokens.js";
 
 const registerSuperAdmin = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -82,6 +60,7 @@ const loginSuperAdmin = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    SuperAdmin,
     superAdmin._id
   );
 
@@ -116,7 +95,7 @@ const logoutSuperAdmin = asyncHandler(async (req, res) => {
     req.auth._id,
     {
       $set: {
-        refreshToken: undefined,
+        refreshToken: 1,
       },
     },
     { new: true }
@@ -140,7 +119,7 @@ const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         req.auth,
-        "Current user details fetched successfully"
+        "Current SuperAdmin details fetched successfully"
       )
     );
 });
@@ -174,7 +153,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(superAdmin._id);
+      await generateAccessAndRefreshTokens(SuperAdmin, superAdmin._id);
 
     console.log("newRefreshToken", newRefreshToken); // showing undefined
 
