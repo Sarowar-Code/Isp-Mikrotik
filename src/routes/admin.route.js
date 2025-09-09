@@ -8,6 +8,7 @@ import {
   updateAdminAvatar,
 } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
@@ -18,8 +19,10 @@ router.route("/logout").post(verifyJWT, logoutAdmin);
 router.route("/getCurretAdmin").post(verifyJWT, getCurretAdmin);
 router
   .route("/updateAccountDetails")
-  .post(verifyJWT, updateAdminAccountDetails);
-router.route("/updateAvatar").post(verifyJWT, updateAdminAvatar);
+  .patch(verifyJWT, updateAdminAccountDetails);
+router
+  .route("/updateAvatar")
+  .patch(verifyJWT, upload.single("avatar"), updateAdminAvatar);
 router.route("/refresh-token").post(refreshAccessToken);
 
 export default router;
