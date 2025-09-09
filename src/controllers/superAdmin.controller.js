@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { Admin } from "../models/admin.model.js";
 import { SuperAdmin } from "../models/superAdmin.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -250,18 +251,20 @@ const getAllAdmins = asyncHandler(async (req, res) => {
 });
 
 const getAdminById = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   // Validate MongoDB ObjectId
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new ApiError(400, "Invalid Admin ID");
+  if (!mongoose.Types.ObjectId.isValid(id?.trim())) {
+    throw new ApiError(400, "Invalid Admin ID format");
   }
 
   // Find admin and exclude sensitive fields
-  const admin = await Admin.findById(id).select("-password -refreshToken");
+  const admin = await Admin.findById(id.trim()).select(
+    "-password -refreshToken"
+  );
 
   if (!admin) {
-    throw new ApiError(404, "Admin not found");
+    throw new ApiError(404, "Admin not found with the provided ID");
   }
 
   return res
@@ -270,7 +273,7 @@ const getAdminById = asyncHandler(async (req, res) => {
 });
 
 const deleteAdminById = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid Admin ID");

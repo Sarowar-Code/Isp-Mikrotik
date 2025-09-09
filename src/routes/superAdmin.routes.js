@@ -21,7 +21,7 @@ router.route("/login").post(loginSuperAdmin);
 
 // Secured Routes - Login required
 router.route("/logout").post(verifyJWT, logoutSuperAdmin);
-router.route("/getCurrentSuperAdmin").post(verifyJWT, getCurrentSuperAdmin);
+router.route("/getCurrentSuperAdmin").get(verifyJWT, getCurrentSuperAdmin);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/registerAdmin").post(
   upload.single("avatar"), // <-- just the field name
@@ -29,8 +29,8 @@ router.route("/registerAdmin").post(
   registerAdmin
 );
 
-router.route("/getAllAdmins").post(verifyJWT, getAllAdmins);
-router.route("/getAdmin").post(verifyJWT, getAdminById);
-router.route("/deleteAdmin").post(verifyJWT, deleteAdminById);
+router.route("/getAllAdmins").get(verifyJWT, getAllAdmins);
+router.route("/getAdmin").get(verifyJWT, getAdminById);
+router.route("/deleteAdmin").delete(verifyJWT, deleteAdminById);
 
 export default router;

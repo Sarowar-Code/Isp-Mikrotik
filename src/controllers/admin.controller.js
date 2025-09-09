@@ -154,7 +154,6 @@ const updateAdminAvatar = asyncHandler(async (req, res) => {
   // take user details from frontend **/
 
   const avatarLocalPath = req.file?.path;
-  console.log("avatarLocalPath", req.file);
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar image is missing");
