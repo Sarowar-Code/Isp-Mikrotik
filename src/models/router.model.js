@@ -2,15 +2,9 @@ import { Schema, model } from "mongoose";
 
 const routerSchema = new Schema(
   {
-    ownerId: {
+    owner: {
       type: Schema.Types.ObjectId,
-      refPath: "ownerModel", // can be Admin or Reseller
-      required: true,
-    },
-    ownerModel: {
-      type: String,
-      enum: ["Admin", "Reseller"],
-      required: true,
+      ref: "Admin",
     },
     host: {
       type: String,
@@ -18,8 +12,8 @@ const routerSchema = new Schema(
     }, // IP or domain
     port: {
       type: Number,
-      default: 8728,
-    }, // MikroTik API default port
+      required: true,
+    },
     username: {
       type: String,
       required: true,
@@ -27,7 +21,20 @@ const routerSchema = new Schema(
     password: {
       type: String,
       required: true,
-    }, // better to encrypt/hash later
+    }, // consider hashing/encrypting later
+    assignedFor: {
+      type: Schema.Types.ObjectId,
+      ref: "Reseller", // optional: reseller using this router
+      default: null,
+    },
+    vlanId: {
+      type: Number,
+      default: null, // optional VLAN ID if used
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    }, // if false, router is inactive
   },
   { timestamps: true }
 );

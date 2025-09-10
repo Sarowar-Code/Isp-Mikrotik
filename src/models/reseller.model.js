@@ -48,20 +48,18 @@ const resellerSchema = new Schema(
       required: true,
     },
     address: {
-      type: String,
-      required: true,
-    },
-    thana: {
-      type: String,
-      required: true,
-    },
-    district: {
-      type: String,
-      required: true,
-    },
-    division: {
-      type: String,
-      required: true,
+      thana: {
+        type: String,
+        required: true,
+      },
+      district: {
+        type: String,
+        required: true,
+      },
+      division: {
+        type: String,
+        required: true,
+      },
     },
     refreshToken: {
       type: String,
@@ -73,13 +71,6 @@ const resellerSchema = new Schema(
     role: {
       type: String,
       default: "Reseller",
-    },
-    routerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Router",
-      required: function () {
-        return this.hasRouter === true;
-      },
     },
   },
   { timestamps: true }

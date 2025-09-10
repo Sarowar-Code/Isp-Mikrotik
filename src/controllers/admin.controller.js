@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Admin } from "../models/admin.model.js";
+import { Router } from "../models/router.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -227,7 +228,92 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const createRouter = asyncHandler(async (req, res) => {
+  const { host, port, username, password, vlanId } = req.body;
+
+  // Validate required fields
+  if (!host || !username || !password) {
+    throw new ApiError(400, "Host, username, and password are required");
+  }
+
+  const existingRouter = await Router.findOne({
+    $or: [{ host }, { username }],
+  });
+
+  if (existingRouter) {
+    throw new ApiError(409, "Router with this host or username already exists");
+  }
+
+  // Create router, initially unassigned
+  const router = await Router.create({
+    owner: req.auth._id, // admin who creates it
+    host,
+    port: port || 8728,
+    username,
+    password,
+    vlanId: vlanId || null,
+    assignedFor: null, // initially null
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, router, "Router created successfully"));
+});
+
+const assignRouterToReseller = asyncHandler(async (req, res) => {
+  const { routerId, resellerId } = req.body;
+
+  if (!routerId || !resellerId) {
+    throw new ApiError(400, "routerId and resellerId are required");
+  }
+
+  const router = await Router.findById(routerId);
+
+  if (!router) {
+    throw new ApiError(404, "Router not found");
+  }
+
+  if (router.assignedFor) {
+    throw new ApiError(400, "Router is already assigned to a reseller");
+  }
+
+  const updatedRouter = await Router.findByIdAndUpdate(
+    router._id,
+    { assignedFor: resellerId },
+    { new: true }
+  );
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedRouter,
+        "Router assigned to reseller successfully"
+      )
+    );
+});
+
+const deleteRouter = asyncHandler(async (req, res) => {
+  const { routerId } = req.query;
+
+  if (!routerId) {
+    throw new ApiError(400, "routerId is required");
+  }
+
+  const router = await Router.findByIdAndDelete(routerId);
+
+  if (!router) {
+    throw new ApiError(404, "Router not found");
+  }
+
+  res.status(200).json(new ApiResponse(200, {}, "Router deleted successfully"));
+});
+
 export {
+  assignRouterToReseller,
+  createRouter,
+  deleteRouter,
   getCurretAdmin,
   loginAdmin,
   logoutAdmin,

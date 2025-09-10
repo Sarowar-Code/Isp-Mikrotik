@@ -53,14 +53,6 @@ const adminSchema = new Schema(
         type: String,
         required: true,
       },
-      houseName: {
-        type: String,
-        required: true,
-      },
-      street: {
-        type: String,
-        required: true,
-      },
       district: {
         type: String,
         required: true,

@@ -1,5 +1,8 @@
 import { Router } from "express";
 import {
+  assignRouterToReseller,
+  createRouter,
+  deleteRouter,
   getCurretAdmin,
   loginAdmin,
   logoutAdmin,
@@ -24,5 +27,8 @@ router
   .route("/updateAvatar")
   .patch(verifyJWT, upload.single("avatar"), updateAdminAvatar);
 router.route("/refresh-token").post(refreshAccessToken);
+router.route("/router/createRouter").post(verifyJWT, createRouter);
+router.route("/router/assignRouter").post(verifyJWT, assignRouterToReseller);
+router.route("/router/deleteRouter").post(verifyJWT, deleteRouter);
 
 export default router;
