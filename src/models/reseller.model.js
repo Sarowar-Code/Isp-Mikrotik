@@ -61,16 +61,21 @@ const resellerSchema = new Schema(
         required: true,
       },
     },
-    refreshToken: {
+    avatar: {
+      // it can be Logo/Profile picture
       type: String,
     },
-    hasRouter: {
-      type: Boolean,
-      default: false,
+    refreshToken: {
+      type: String,
     },
     role: {
       type: String,
       default: "Reseller",
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
     },
   },
   { timestamps: true }

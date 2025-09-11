@@ -27,8 +27,10 @@ router
   .route("/updateAvatar")
   .patch(verifyJWT, upload.single("avatar"), updateAdminAvatar);
 router.route("/refresh-token").post(refreshAccessToken);
+
+// Router Management
 router.route("/router/createRouter").post(verifyJWT, createRouter);
-router.route("/router/assignRouter").post(verifyJWT, assignRouterToReseller);
-router.route("/router/deleteRouter").post(verifyJWT, deleteRouter);
+router.route("/router/assignRouter").patch(verifyJWT, assignRouterToReseller);
+router.route("/router/deleteRouter").delete(verifyJWT, deleteRouter);
 
 export default router;

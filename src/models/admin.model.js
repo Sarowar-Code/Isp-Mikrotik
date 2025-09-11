@@ -70,7 +70,6 @@ const adminSchema = new Schema(
       default: "Admin",
     },
   },
-
   {
     timestamps: true,
   }

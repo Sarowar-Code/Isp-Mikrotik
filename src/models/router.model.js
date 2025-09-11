@@ -39,4 +39,4 @@ const routerSchema = new Schema(
   { timestamps: true }
 );
 
-export default model("Router", routerSchema);
+export const Router = model("Router", routerSchema);
