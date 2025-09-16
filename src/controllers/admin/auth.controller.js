@@ -1,11 +1,12 @@
-import { Reseller } from "../models/reseller.model.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { cookieOptions } from "../utils/cookieOptions.js";
-import { generateAccessAndRefreshTokens } from "../utils/generateTokens.js";
+import jwt from "jsonwebtoken";
+import { Admin } from "../../models/admin.model.js";
+import { ApiError } from "../../utils/ApiError.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { cookieOptions } from "../../utils/cookieOptions.js";
+import { generateAccessAndRefreshTokens } from "../../utils/generateTokens.js";
 
-const loginReseller = asyncHandler(async (req, res) => {
+const loginAdmin = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username && !email) {
@@ -16,26 +17,26 @@ const loginReseller = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password is required");
   }
 
-  const reseller = await Reseller.findOne({
+  const admin = await Admin.findOne({
     $or: [{ email }, { username: username?.toLowerCase() }],
   });
 
-  if (!reseller) {
-    throw new ApiError(404, "Reseller does not exist");
+  if (!admin) {
+    throw new ApiError(404, "Admin does not exist");
   }
 
-  const isPasswordValid = await reseller.comparePassword(password);
+  const isPasswordValid = await admin.comparePassword(password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid Reseller Credentials");
+    throw new ApiError(401, "Invalid Admin Credentials");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    Reseller,
-    reseller._id
+    Admin,
+    admin._id
   );
 
-  const loggedInReseller = await Reseller.findById(reseller._id).select(
+  const loggedInAdmin = await Admin.findById(admin._id).select(
     "-password -refreshToken"
   );
 
@@ -47,17 +48,17 @@ const loginReseller = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInReseller,
+          user: loggedInAdmin,
           accessToken,
           refreshToken,
         },
-        "Reseller logged in successfully"
+        "Admin logged in successfully"
       )
     );
 });
 
-const logoutReseller = asyncHandler(async (req, res) => {
-  await Reseller.findByIdAndUpdate(
+const logoutAdmin = asyncHandler(async (req, res) => {
+  await Admin.findByIdAndUpdate(
     req.auth._id,
     {
       $unset: {
@@ -70,7 +71,7 @@ const logoutReseller = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions)
-    .json(new ApiResponse(200, {}, "Reseller logged out successfully"));
+    .json(new ApiResponse(200, {}, "Admin logged out successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -86,21 +87,21 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.RESELLER_REFRESH_TOKEN_SECRET
+      process.env.ADMIN_REFRESH_TOKEN_SECRET
     );
 
-    const reseller = await Reseller.findById(decodedToken._id);
+    const admin = await Admin.findById(decodedToken._id);
 
-    if (!reseller) {
-      throw new ApiError(401, "Invalid refresh token - Reseller not found");
+    if (!admin) {
+      throw new ApiError(401, "Invalid refresh token - Admin not found");
     }
 
-    if (reseller.refreshToken !== incomingRefreshToken) {
+    if (admin.refreshToken !== incomingRefreshToken) {
       throw new ApiError(401, "Refresh token expired or used");
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(Reseller, reseller._id);
+      await generateAccessAndRefreshTokens(Admin, admin._id);
 
     return res
       .status(200)
@@ -118,23 +119,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-const getCurrentReseller = asyncHandler(async (req, res) => {
-  const reseller = await Reseller.findById(req.auth._id).select(
-    "-password -refreshToken"
-  );
-
-  if (!reseller) {
-    throw new ApiError(404, "Reseller not found");
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, reseller, "Reseller fetched successfully"));
-});
-
 export {
-  getCurrentReseller,
-  loginReseller,
-  logoutReseller,
+  getCurretAdmin,
+  loginAdmin,
+  logoutAdmin,
   refreshAccessToken,
+  updateAdminAccountDetails,
+  updateAdminAvatar,
 };

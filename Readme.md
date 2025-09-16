@@ -88,3 +88,26 @@ Reseller
 
 Do you want me to also **make the ER diagram + workflow chart (roles, relationships, flow arrows)** so you can directly take it into your **new chat** as a visual starting point?
 //
+
+// Possible Router Routes for Admin
+| Method | Endpoint | Description |
+
+| ---------- | --------------- | --------------------------------------------------------------------- |
+| **POST** | `/` | Create a new router (add connection details). |
+| **GET** | `/` | Get all routers (with filters: active/inactive, assigned/unassigned). |
+| **GET** | `/:id` | Get details of a specific router. |
+| **PUT** | `/:id` | Update router details (host, port, username, password, VLAN, etc.). |
+| **DELETE** | `/:id` | Delete router. |
+| **PATCH** | `/:id/assign` | Assign router to a reseller. |
+| **PATCH** | `/:id/unassign` | Unassign router from reseller. |
+| **PATCH** | `/:id/status` | Activate/Deactivate router. |
+| **GET** | `/:id/monitor` | Fetch router monitoring info (uptime, version, board, lastSeen). |
+| **GET** | `/:id/clients` | List all PPP clients connected to this router. |
+
+// Possible Router Routes for Reseller
+| Method | Endpoint | Description |
+| ------- | -------------- | ---------------------------------------------------------------- |
+| **GET** | `/` | Get all routers assigned to the reseller. |
+| **GET** | `/:id` | Get details of a specific assigned router. |
+| **GET** | `/:id/monitor` | View monitoring info of assigned router. |
+| **GET** | `/:id/clients` | View all PPP clients under this router (only their own clients). |

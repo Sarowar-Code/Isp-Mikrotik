@@ -1,17 +1,18 @@
 import { Router } from "express";
 import {
-  deleteAdminById,
-  getAdminById,
-  getAllAdmins,
   getCurrentSuperAdmin,
   loginSuperAdmin,
   logoutSuperAdmin,
   refreshAccessToken,
-  registerAdmin,
   registerSuperAdmin,
 } from "../controllers/superAdmin.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
+import {
+  deleteAdminById,
+  getAdminById,
+  getAllAdmins,
+} from "../controllers/superAdmin/superAdmin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
