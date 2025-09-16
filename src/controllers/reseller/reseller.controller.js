@@ -85,4 +85,6 @@ const getAllResellers = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, resellers, "Resellers Fetched Successfully"));
 });
 
+const getResellerById = asyncHandler(async (req, res) => {});
+
 export { getAllResellers, registerReseller };

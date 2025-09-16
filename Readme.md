@@ -106,7 +106,7 @@ Do you want me to also **make the ER diagram + workflow chart (roles, relationsh
 
 // Possible Router Routes for Reseller
 | Method | Endpoint | Description |
-| ------- | -------------- | ---------------------------------------------------------------- |
+| ------- | -------------- | ------------------------------------------------------------------------------------- |
 | **GET** | `/` | Get all routers assigned to the reseller. |
 | **GET** | `/:id` | Get details of a specific assigned router. |
 | **GET** | `/:id/monitor` | View monitoring info of assigned router. |
