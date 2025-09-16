@@ -1,23 +1,19 @@
 import { Router } from "express";
 import {
-  getMyRouters,
-  getRouterPppSecretsForReseller,
-} from "../controllers/reseller.controller.js";
+  loginReseller,
+  logoutReseller,
+  refreshAccessToken,
+} from "../controllers/reseller/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { requireReseller } from "../middlewares/roles.middleware.js";
-import pppClientRouter from "./pppClient.routes.js";
 
 const router = Router();
 
-router.use(verifyJWT, requireReseller);
+// router.use(verifyJWT, requireReseller);
+// Auth Reseller
+router.route("/login").post(loginReseller);
+router.route("/refresh-token").post(refreshAccessToken);
 
-// Assigned routers for reseller
-router.get("/routers", getMyRouters);
-
-// PPP secrets directly from router (read-only)
-router.get("/routers/:id/ppp-secrets", getRouterPppSecretsForReseller);
-
-// Mount PPP client management under reseller namespace
-router.use("/ppp-clients", pppClientRouter);
+// Reseller verified Route
+router.route("/logout").post(verifyJWT, logoutReseller);
 
 export default router;

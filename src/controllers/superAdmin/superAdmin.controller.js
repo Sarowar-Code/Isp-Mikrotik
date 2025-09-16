@@ -174,13 +174,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 export {
-  deleteAdminById,
-  getAdminById,
-  getAllAdmins,
   getCurrentSuperAdmin,
   loginSuperAdmin,
   logoutSuperAdmin,
   refreshAccessToken,
-  registerAdmin,
   registerSuperAdmin,
 };

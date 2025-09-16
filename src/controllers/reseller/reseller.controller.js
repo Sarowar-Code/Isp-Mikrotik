@@ -1,9 +1,13 @@
+// Resellers Controllers Which is used by admin
 import { Reseller } from "../../models/reseller.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
+
 const registerReseller = asyncHandler(async (req, res) => {
+  console.log("REQBODY :", req.body);
+
   const {
     fullName,
     username,
@@ -12,7 +16,7 @@ const registerReseller = asyncHandler(async (req, res) => {
     contact,
     whatsapp,
     nid,
-    address, // Mongoose will handle the validation of this object
+    address,
   } = req.body;
 
   if (
@@ -85,6 +89,49 @@ const getAllResellers = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, resellers, "Resellers Fetched Successfully"));
 });
 
-const getResellerById = asyncHandler(async (req, res) => {});
+const getResellerById = asyncHandler(async (req, res) => {
+  const { id } = req.query;
 
-export { getAllResellers, registerReseller };
+  // Validate MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id?.trim())) {
+    throw new ApiError(400, "Invalid Reseller ID format");
+  }
+
+  // Find admin and exclude sensitive fields
+  const reseller = await Reseller.findById(id.trim()).select(
+    "-password -refreshToken"
+  );
+
+  if (!reseller) {
+    throw new ApiError(404, "Reseller not found with the provided ID");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, admin, "Reseller fetched successfully"));
+});
+
+const deleteResellerById = asyncHandler(async (req, res) => {
+  const { id } = req.query;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid Reseller ID");
+  }
+
+  const reseller = await Admin.findByIdAndDelete(id);
+
+  if (!reseller) {
+    throw new ApiError(404, "Reseller not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Reseller deleted successfully"));
+});
+
+export {
+  deleteResellerById,
+  getAllResellers,
+  getResellerById,
+  registerReseller,
+};

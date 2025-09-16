@@ -1,12 +1,12 @@
 import jwt from "jsonwebtoken";
-import { Admin } from "../../models/admin.model.js";
+import { Reseller } from "../../models/reseller.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { cookieOptions } from "../../utils/cookieOptions.js";
 import { generateAccessAndRefreshTokens } from "../../utils/generateTokens.js";
 
-const loginAdmin = asyncHandler(async (req, res) => {
+const loginReseller = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username && !email) {
@@ -17,26 +17,26 @@ const loginAdmin = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password is required");
   }
 
-  const admin = await Admin.findOne({
+  const reseller = await Reseller.findOne({
     $or: [{ email }, { username: username?.toLowerCase() }],
   });
 
-  if (!admin) {
-    throw new ApiError(404, "Admin does not exist");
+  if (!reseller) {
+    throw new ApiError(404, "Reseller does not exist");
   }
 
-  const isPasswordValid = await admin.comparePassword(password);
+  const isPasswordValid = await reseller.comparePassword(password);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid Admin Credentials");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    Admin,
-    admin._id
+    Reseller,
+    reseller._id
   );
 
-  const loggedInAdmin = await Admin.findById(admin._id).select(
+  const loggedInReseller = await Reseller.findById(reseller._id).select(
     "-password -refreshToken"
   );
 
@@ -48,17 +48,17 @@ const loginAdmin = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInAdmin,
+          user: loggedInReseller,
           accessToken,
           refreshToken,
         },
-        "Admin logged in successfully"
+        "Reseller logged in successfully"
       )
     );
 });
 
-const logoutAdmin = asyncHandler(async (req, res) => {
-  await Admin.findByIdAndUpdate(
+const logoutReseller = asyncHandler(async (req, res) => {
+  await Reseller.findByIdAndUpdate(
     req.auth._id,
     {
       $unset: {
@@ -71,7 +71,7 @@ const logoutAdmin = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions)
-    .json(new ApiResponse(200, {}, "Admin logged out successfully"));
+    .json(new ApiResponse(200, {}, "Reseller logged out successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -87,21 +87,21 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.ADMIN_REFRESH_TOKEN_SECRET
+      process.env.RESELLER_REFRESH_TOKEN_SECRET
     );
 
-    const admin = await Admin.findById(decodedToken._id);
+    const reseller = await Reseller.findById(decodedToken._id);
 
-    if (!admin) {
-      throw new ApiError(401, "Invalid refresh token - Admin not found");
+    if (!reseller) {
+      throw new ApiError(401, "Invalid refresh token - Reseller not found");
     }
 
-    if (admin.refreshToken !== incomingRefreshToken) {
+    if (reseller.refreshToken !== incomingRefreshToken) {
       throw new ApiError(401, "Refresh token expired or used");
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(Admin, admin._id);
+      await generateAccessAndRefreshTokens(Reseller, reseller._id);
 
     return res
       .status(200)
@@ -119,4 +119,4 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { loginAdmin, logoutAdmin, refreshAccessToken };
+export { loginReseller, logoutReseller, refreshAccessToken };

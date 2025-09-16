@@ -1,15 +1,20 @@
 import { Router } from "express";
 import {
-  assignRouterToReseller,
-  createRouter,
-  deleteRouter,
-  getCurretAdmin,
   loginAdmin,
   logoutAdmin,
   refreshAccessToken,
+} from "../controllers/admin/auth.controller.js";
+import {
+  getCurretAdmin,
   updateAdminAccountDetails,
   updateAdminAvatar,
-} from "../controllers/admin.controller.js";
+} from "../controllers/admin/profile.controller.js";
+import {
+  deleteResellerById,
+  getAllResellers,
+  getResellerById,
+  registerReseller,
+} from "../controllers/reseller/reseller.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -28,9 +33,18 @@ router
   .patch(verifyJWT, upload.single("avatar"), updateAdminAvatar);
 router.route("/refresh-token").post(refreshAccessToken);
 
-// Router Management
-router.route("/router/createRouter").post(verifyJWT, createRouter);
-router.route("/router/assignRouter").patch(verifyJWT, assignRouterToReseller);
-router.route("/router/deleteRouter").delete(verifyJWT, deleteRouter);
+// Reseller Route Management
+
+router
+  .route("/registerReseller")
+  .post(verifyJWT, upload.single("avatar"), registerReseller);
+router.route("/getAllReseller").get(verifyJWT, getAllResellers);
+router.route("/getReseller").get(verifyJWT, getResellerById);
+router.route("/deleteReseller").post(verifyJWT, deleteResellerById);
+
+// Router Management //
+router.route("/router/createRouter").post(verifyJWT);
+router.route("/router/assignRouter").patch(verifyJWT);
+router.route("/router/deleteRouter").delete(verifyJWT);
 
 export default router;

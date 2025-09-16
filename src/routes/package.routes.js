@@ -10,7 +10,7 @@ import {
   updatePackage,
   validateCreatePackage,
   validateUpdatePackage,
-} from "../controllers/package.controller.js";
+} from "../controllers/admin/package.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { requireAdmin } from "../middlewares/roles.middleware.js";
 

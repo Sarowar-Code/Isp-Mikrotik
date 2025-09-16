@@ -11,7 +11,7 @@ import {
   updatePppClient,
   validateCreatePppClient,
   validateUpdatePppClient,
-} from "../controllers/pppClient.controller.js";
+} from "../controllers/reseller/pppClient.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { requireReseller } from "../middlewares/roles.middleware.js";
 

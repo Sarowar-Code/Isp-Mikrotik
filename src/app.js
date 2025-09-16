@@ -47,23 +47,13 @@ app.use(cookieParser());
 
 // routes import
 import adminRouter from "./routes/admin.route.js";
-import monitoringRouter from "./routes/monitoring.routes.js";
-import packageRouter from "./routes/package.routes.js";
-import pppClientRouter from "./routes/pppClient.routes.js";
 import resellerRouter from "./routes/reseller.routes.js";
-import routerRouter from "./routes/router.routes.js";
 import superAdminRouter from "./routes/superAdmin.routes.js";
 
 // routes declaration ====><====
 // SuperAmin
 app.use("/api/v1/superAdmin", superAdminRouter);
 app.use("/api/v1/admin", adminRouter);
-
-// RouterOS API routes
-app.use("/api/v1/ppp-clients", pppClientRouter);
-app.use("/api/v1/packages", packageRouter);
-app.use("/api/v1/routers", routerRouter);
 app.use("/api/v1/reseller", resellerRouter);
-app.use("/api/v1/monitoring", monitoringRouter);
 
 export { app };
