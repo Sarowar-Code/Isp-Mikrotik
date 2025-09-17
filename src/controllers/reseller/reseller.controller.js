@@ -1,4 +1,5 @@
 // Resellers Controllers Which is used by admin
+import mongoose from "mongoose";
 import { Reseller } from "../../models/reseller.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
@@ -97,7 +98,7 @@ const getResellerById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid Reseller ID format");
   }
 
-  // Find admin and exclude sensitive fields
+  // Find reseller and exclude sensitive fields
   const reseller = await Reseller.findById(id.trim()).select(
     "-password -refreshToken"
   );
@@ -108,7 +109,7 @@ const getResellerById = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, admin, "Reseller fetched successfully"));
+    .json(new ApiResponse(200, reseller, "Reseller fetched successfully"));
 });
 
 const deleteResellerById = asyncHandler(async (req, res) => {
@@ -118,7 +119,7 @@ const deleteResellerById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid Reseller ID");
   }
 
-  const reseller = await Admin.findByIdAndDelete(id);
+  const reseller = await Reseller.findByIdAndDelete(id);
 
   if (!reseller) {
     throw new ApiError(404, "Reseller not found");

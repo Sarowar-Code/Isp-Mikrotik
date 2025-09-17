@@ -98,7 +98,7 @@ export const validateUpdatePackage = [
 ];
 
 // Create Package (RouterOS Profile)
-export const createPackage = asyncHandler(async (req, res) => {
+const createPackage = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     throw new ApiError(400, "Validation failed", errors.array());
@@ -247,7 +247,7 @@ export const createPackage = asyncHandler(async (req, res) => {
 });
 
 // Get all Packages
-export const getPackages = asyncHandler(async (req, res) => {
+const getPackages = asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
@@ -304,7 +304,7 @@ export const getPackages = asyncHandler(async (req, res) => {
 });
 
 // Get single Package
-export const getPackage = asyncHandler(async (req, res) => {
+const getPackage = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const packageDoc = await Package.findById(id)
@@ -322,7 +322,7 @@ export const getPackage = asyncHandler(async (req, res) => {
 });
 
 // Update Package
-export const updatePackage = asyncHandler(async (req, res) => {
+const updatePackage = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     throw new ApiError(400, "Validation failed", errors.array());
@@ -410,7 +410,7 @@ export const updatePackage = asyncHandler(async (req, res) => {
 });
 
 // Delete Package
-export const deletePackage = asyncHandler(async (req, res) => {
+const deletePackage = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const packageDoc = await Package.findById(id);
@@ -439,7 +439,7 @@ export const deletePackage = asyncHandler(async (req, res) => {
 });
 
 // Sync Package with RouterOS
-export const syncPackage = asyncHandler(async (req, res) => {
+const syncPackage = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const packageDoc = await Package.findById(id);
@@ -547,7 +547,7 @@ export const syncPackage = asyncHandler(async (req, res) => {
 });
 
 // Get packages from RouterOS
-export const getPackagesFromRouter = asyncHandler(async (req, res) => {
+const getPackagesFromRouter = asyncHandler(async (req, res) => {
   const { routerId } = req.params;
 
   if (!routerId) {
@@ -576,7 +576,7 @@ export const getPackagesFromRouter = asyncHandler(async (req, res) => {
 });
 
 // Bulk sync packages
-export const bulkSyncPackages = asyncHandler(async (req, res) => {
+const bulkSyncPackages = asyncHandler(async (req, res) => {
   const { packageIds, action } = req.body;
 
   if (!Array.isArray(packageIds) || packageIds.length === 0) {
@@ -621,3 +621,14 @@ export const bulkSyncPackages = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, results, `Bulk ${action} operation completed`));
 });
+
+export {
+  bulkSyncPackages,
+  createPackage,
+  deletePackage,
+  getPackage,
+  getPackages,
+  getPackagesFromRouter,
+  syncPackage,
+  updatePackage,
+};

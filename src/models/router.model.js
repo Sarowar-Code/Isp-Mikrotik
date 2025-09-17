@@ -26,6 +26,9 @@ const routerSchema = new Schema(
     username: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
+      index: true,
     },
     password: {
       type: String,
@@ -54,13 +57,11 @@ const routerSchema = new Schema(
       type: String,
       default: "",
     },
-
     // VLAN Support (if used)
     vlanId: {
       type: Number,
       default: null,
     },
-
     // Monitoring
     isActive: {
       type: Boolean,

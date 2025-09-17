@@ -1,221 +1,121 @@
-import { body, param, validationResult } from "express-validator";
 import { Router } from "../../models/router.model.js";
 import { routerOSService } from "../../services/routeros.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 
-// Validation rules
-export const validateCreateRouter = [
-  body("host").isIP().withMessage("Valid IP address is required"),
-  body("port")
-    .isInt({ min: 1, max: 65535 })
-    .withMessage("Port must be between 1 and 65535"),
-  body("username").notEmpty().withMessage("Username is required"),
-  body("password").notEmpty().withMessage("Password is required"),
-  body("assignedFor")
-    .optional()
-    .isMongoId()
-    .withMessage("Valid reseller ID is required"),
-  body("vlanId")
-    .optional()
-    .isInt({ min: 1, max: 4094 })
-    .withMessage("VLAN ID must be between 1 and 4094"),
-];
+const registerRouter = asyncHandler(async (req, res) => {
+  const { host, port, username, password, apiType, notes } = req.body;
 
-export const validateUpdateRouter = [
-  param("id").isMongoId().withMessage("Valid router ID is required"),
-  body("host").optional().isIP().withMessage("Valid IP address is required"),
-  body("port")
-    .optional()
-    .isInt({ min: 1, max: 65535 })
-    .withMessage("Port must be between 1 and 65535"),
-  body("username")
-    .optional()
-    .notEmpty()
-    .withMessage("Username cannot be empty"),
-  body("password")
-    .optional()
-    .notEmpty()
-    .withMessage("Password cannot be empty"),
-  body("assignedFor")
-    .optional()
-    .isMongoId()
-    .withMessage("Valid reseller ID is required"),
-  body("vlanId")
-    .optional()
-    .isInt({ min: 1, max: 4094 })
-    .withMessage("VLAN ID must be between 1 and 4094"),
-];
-
-// Create Router
-const createRouter = asyncHandler(async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    throw new ApiError(400, "Validation failed", errors.array());
+  // Validate input
+  if (!host || !username || !password) {
+    throw new ApiError(400, "All Feilds are required");
   }
 
-  const { host, port, username, password, assignedFor, vlanId } = req.body;
-
-  // Check if router with same host already exists
-  const existingRouter = await Router.findOne({ host });
-  if (existingRouter) {
-    throw new ApiError(400, "Router with this host already exists");
+  // Optional: Validate port range
+  if (port && (port < 1 || port > 65535)) {
+    throw new ApiError(400, "Port must be between 1 and 65535.");
   }
 
-  // Test connection before saving
-  try {
-    const { RouterOSAPI } = await import("node-routeros-v2");
-    const testClient = new RouterOSAPI({
-      host,
-      user: username,
-      password,
-      port,
-      timeout: 5000,
-    });
-    await testClient.connect();
-    await testClient.close();
-  } catch (error) {
-    throw new ApiError(400, `Cannot connect to router: ${error.message}`);
-  }
-
-  // Create router in database
-  const router = await Router.create({
-    owner: req.user._id,
-    host,
-    port,
-    username,
-    password,
-    assignedFor,
-    vlanId,
-    isActive: true,
+  // Check if router with same host + username already exists
+  const existingRouter = await Router.findOne({
+    $or: [{ host }, { username }],
   });
 
-  res
+  if (existingRouter) {
+    throw new ApiError(
+      409,
+      "Router with this host and username already exists."
+    );
+  }
+
+  // Create router
+  const router = await Router.create({
+    owner: req.auth._id, // assuming auth middleware sets req.user
+    host,
+    port: port || 8728,
+    username,
+    password,
+    apiType: apiType || "api",
+    notes: notes || "",
+  });
+
+  if (!router) {
+    throw new ApiError(400, "Failed to create Router");
+  }
+
+  return res
     .status(201)
-    .json(new ApiResponse(201, router, "Router created successfully"));
+    .json(new ApiResponse(200, router, "Router Created Successfully"));
 });
 
-// Get all Routers
 const getRouters = asyncHandler(async (req, res) => {
-  const {
-    page = 1,
-    limit = 10,
-    search = "",
-    status = "",
-    assignedFor = "",
-    sortBy = "createdAt",
-    sortOrder = "desc",
-  } = req.query;
+  const routers = await Router.find({ owner: req.auth._id });
 
-  const query = {};
-
-  // Search filter
-  if (search) {
-    query.$or = [
-      { host: { $regex: search, $options: "i" } },
-      { username: { $regex: search, $options: "i" } },
-    ];
+  if (!routers) {
+    throw new ApiError(400, "failed to get routers");
   }
 
-  // Status filter
-  if (status) {
-    query.isActive = status === "active";
-  }
-
-  // Assigned for filter
-  if (assignedFor) {
-    query.assignedFor = assignedFor;
-  }
-
-  const options = {
-    page: parseInt(page),
-    limit: parseInt(limit),
-    sort: { [sortBy]: sortOrder === "desc" ? -1 : 1 },
-    populate: [
-      { path: "owner", select: "name email" },
-      { path: "assignedFor", select: "name email" },
-    ],
-  };
-
-  const routers = await Router.paginate(query, options);
-
-  res
+  return res
     .status(200)
-    .json(new ApiResponse(200, routers, "Routers retrieved successfully"));
+    .json(new ApiResponse(200, routers, "Routers Fetched Successfully"));
 });
 
-// Get single Router
 const getRouter = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const router = await Router.findById(id)
-    .populate("owner", "name email")
-    .populate("assignedFor", "name email");
+  const router = await Router.findById(id);
 
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
 
-  res
+  return res
     .status(200)
     .json(new ApiResponse(200, router, "Router retrieved successfully"));
 });
 
-// Update Router
 const updateRouter = asyncHandler(async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    throw new ApiError(400, "Validation failed", errors.array());
-  }
+  const { id } = req.query;
+  const { host, port, username, password, apiType, notes, isActive, status } =
+    req.body;
 
-  const { id } = req.params;
-  const updateData = req.body;
-
+  // Find router
   const router = await Router.findById(id);
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
 
-  // Test connection if host, port, username, or password is being updated
-  if (
-    updateData.host ||
-    updateData.port ||
-    updateData.username ||
-    updateData.password
-  ) {
-    try {
-      const { RouterOSAPI } = await import("node-routeros-v2");
-      const testClient = new RouterOSAPI({
-        host: updateData.host || router.host,
-        user: updateData.username || router.username,
-        password: updateData.password || router.password,
-        port: updateData.port || router.port,
-        timeout: 5000,
-      });
-      await testClient.connect();
-      await testClient.close();
-    } catch (error) {
-      throw new ApiError(400, `Cannot connect to router: ${error.message}`);
-    }
+  // Only owner Admin can update
+  if (router.owner.toString() !== req.auth._id.toString()) {
+    throw new ApiError(403, "You are not authorized to update this Router");
   }
 
-  // Update router
-  const updatedRouter = await Router.findByIdAndUpdate(id, updateData, {
-    new: true,
-    runValidators: true,
-  });
+  // Update fields (only if provided)
+  if (host) router.host = host;
+  if (port) {
+    if (port < 1 || port > 65535) {
+      throw new ApiError(400, "Port must be between 1 and 65535.");
+    }
+    router.port = port;
+  }
+  if (username) router.username = username;
+  if (password) router.password = password; // later: hash/encrypt
+  if (apiType) router.apiType = apiType;
+  if (notes !== undefined) router.notes = notes;
+  if (isActive !== undefined) router.isActive = isActive;
+  if (status) router.status = status;
 
-  res
+  return res
     .status(200)
-    .json(new ApiResponse(200, updatedRouter, "Router updated successfully"));
+    .json(new ApiResponse(200, router, "Router Updated Successfully"));
 });
 
-// Delete Router
 const deleteRouter = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
+
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
@@ -224,11 +124,11 @@ const deleteRouter = asyncHandler(async (req, res) => {
   await routerOSService.closeConnection(id);
 
   // Delete router
-  await Router.findByIdAndDelete(id);
+  const deletedRouter = await Router.findByIdAndDelete(id);
 
-  res
+  return res
     .status(200)
-    .json(new ApiResponse(200, null, "Router deleted successfully"));
+    .json(new ApiResponse(200, {}, "Router deleted successfully"));
 });
 
 // Test Router Connection
@@ -599,7 +499,6 @@ const toggleRouterStatus = asyncHandler(async (req, res) => {
 });
 
 export {
-  createRouter,
   deleteRouter,
   executeRouterOSCommand,
   getRouter,
@@ -612,6 +511,7 @@ export {
   getRouters,
   getRouterStatus,
   getRouterSystemInfo,
+  registerRouter,
   testRouterConnection,
   toggleRouterStatus,
   updateRouter,

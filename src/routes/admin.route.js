@@ -10,6 +10,11 @@ import {
   updateAdminAvatar,
 } from "../controllers/admin/profile.controller.js";
 import {
+  deleteRouter,
+  registerRouter,
+  updateRouter,
+} from "../controllers/admin/router.controller.js";
+import {
   deleteResellerById,
   getAllResellers,
   getResellerById,
@@ -40,11 +45,12 @@ router
   .post(verifyJWT, upload.single("avatar"), registerReseller);
 router.route("/getAllReseller").get(verifyJWT, getAllResellers);
 router.route("/getReseller").get(verifyJWT, getResellerById);
-router.route("/deleteReseller").post(verifyJWT, deleteResellerById);
+router.route("/deleteReseller").delete(verifyJWT, deleteResellerById);
 
 // Router Management //
-router.route("/router/createRouter").post(verifyJWT);
-router.route("/router/assignRouter").patch(verifyJWT);
-router.route("/router/deleteRouter").delete(verifyJWT);
+router.route("/router/createRouter").post(verifyJWT, registerRouter);
+// router.route("/router/assignRouter").patch(verifyJWT);
+router.route("/router/updateRouter").patch(verifyJWT, updateRouter);
+router.route("/router/deleteRouter").delete(verifyJWT, deleteRouter);
 
 export default router;
