@@ -10,8 +10,10 @@ import {
   updateAdminAvatar,
 } from "../controllers/admin/profile.controller.js";
 import {
+  assignRouter,
   deleteRouter,
   registerRouter,
+  unAssignRouter,
   updateRouter,
 } from "../controllers/admin/router.controller.js";
 import {
@@ -49,7 +51,8 @@ router.route("/deleteReseller").delete(verifyJWT, deleteResellerById);
 
 // Router Management //
 router.route("/router/createRouter").post(verifyJWT, registerRouter);
-// router.route("/router/assignRouter").patch(verifyJWT);
+router.route("/router/assignRouter").patch(verifyJWT, assignRouter);
+router.route("/router/unAssignRouter").patch(verifyJWT, unAssignRouter);
 router.route("/router/updateRouter").patch(verifyJWT, updateRouter);
 router.route("/router/deleteRouter").delete(verifyJWT, deleteRouter);
 

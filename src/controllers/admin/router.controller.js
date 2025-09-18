@@ -1,3 +1,4 @@
+import { Reseller } from "../../models/reseller.model.js";
 import { Router } from "../../models/router.model.js";
 import { routerOSService } from "../../services/routeros.service.js";
 import { ApiError } from "../../utils/ApiError.js";
@@ -129,6 +130,77 @@ const deleteRouter = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Router deleted successfully"));
+});
+
+const assignRouter = asyncHandler(async (req, res) => {
+  const { routerId, resellerId } = req.body;
+
+  // Validate request
+  if (!routerId || !resellerId) {
+    throw new ApiError(400, "Router ID and Reseller ID are required.");
+  }
+
+  // Find router
+  const router = await Router.findById(routerId);
+  if (!router) {
+    throw new ApiError(404, "Router Not Found");
+  }
+
+  // Ownership check
+  if (router.owner.toString() !== req.auth._id.toString()) {
+    throw new ApiError(403, "You are not authorized to assign this router.");
+  }
+
+  // Find reseller
+  const reseller = await Reseller.findById(resellerId);
+  if (!reseller) {
+    throw new ApiError(404, "Reseller not found");
+  }
+
+  // Assign router
+  router.assignedFor = reseller._id;
+  await router.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        routerId: router._id,
+        assignedFor: reseller._id,
+        resellerName: reseller.fullName,
+      },
+      "Router Assigned successfully"
+    )
+  );
+});
+
+const unAssignRouter = asyncHandler(async (req, res) => {
+  const { routerId } = req.query; // or req.params depending on your route
+
+  if (!routerId) {
+    throw new ApiError(400, "RouterId is Required");
+  }
+  // 1. Find router
+  const router = await Router.findById(routerId);
+
+  if (!router) {
+    throw new ApiError(404, "Router not found");
+  }
+
+  // 2. Check if already unassigned
+  if (!router.assignedFor) {
+    throw new ApiError(400, "Router is Already unassigned");
+  }
+
+  // 3. Unassign
+  router.assignedFor = null;
+
+  await router.save();
+
+  // 4. Response
+  return res
+    .status(200)
+    .json(new ApiResponse(200, router, "Router Unassigned Successfully"));
 });
 
 // Test Router Connection
@@ -499,6 +571,7 @@ const toggleRouterStatus = asyncHandler(async (req, res) => {
 });
 
 export {
+  assignRouter,
   deleteRouter,
   executeRouterOSCommand,
   getRouter,
@@ -514,5 +587,6 @@ export {
   registerRouter,
   testRouterConnection,
   toggleRouterStatus,
+  unAssignRouter,
   updateRouter,
 };
