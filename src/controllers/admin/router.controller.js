@@ -1,3 +1,4 @@
+import { RouterOSAPI } from "node-routeros";
 import { Reseller } from "../../models/reseller.model.js";
 import { Router } from "../../models/router.model.js";
 import { routerOSService } from "../../services/routeros.service.js";
@@ -107,6 +108,8 @@ const updateRouter = asyncHandler(async (req, res) => {
   if (isActive !== undefined) router.isActive = isActive;
   if (status) router.status = status;
 
+  await router.save();
+
   return res
     .status(200)
     .json(new ApiResponse(200, router, "Router Updated Successfully"));
@@ -205,28 +208,33 @@ const unAssignRouter = asyncHandler(async (req, res) => {
 
 // Test Router Connection
 const testRouterConnection = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
+  const { id } = req.query;
   const router = await Router.findById(id);
+
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
 
+  console.log("ROUTER", router);
+
   try {
-    const { RouterOSAPI } = await import("node-routeros-v2");
     const testClient = new RouterOSAPI({
       host: router.host,
       user: router.username,
       password: router.password,
-      port: router.port,
+      port: router.port || 8728,
+      ssl: router.apiType === "ssl-api",
       timeout: 10000,
     });
+
     await testClient.connect();
-    // Get basic router info
+
     const identity = await testClient.write("/system/identity/print");
     const version = await testClient.write("/system/resource/print");
+
     await testClient.close();
-    res.status(200).json(
+
+    return res.status(200).json(
       new ApiResponse(
         200,
         {
@@ -239,30 +247,28 @@ const testRouterConnection = asyncHandler(async (req, res) => {
       )
     );
   } catch (error) {
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          connected: false,
-          error: error.message,
-          responseTime: Date.now(),
-        },
-        "Router connection test failed"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { connected: false, error: error.message, responseTime: Date.now() },
+          "Router connection test failed"
+        )
+      );
   }
 });
 
 // Get Router Status
 const getRouterStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
 
-  const connectionStatus = routerOSService.getConnectionStatus(id);
+  const connectionStatus = routerOSService.getConnectionStatus(router._id);
 
   res.status(200).json(
     new ApiResponse(
@@ -355,9 +361,12 @@ const getRouterInterfaces = asyncHandler(async (req, res) => {
 
 // Get Router PPP Secrets
 const getRouterPppSecrets = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
+
+  console.log(router);
+
   if (!router) {
     throw new ApiError(404, "Router not found");
   }
@@ -386,7 +395,7 @@ const getRouterPppSecrets = asyncHandler(async (req, res) => {
 
 // Get Router PPP Profiles
 const getRouterPppProfiles = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -559,7 +568,7 @@ const toggleRouterStatus = asyncHandler(async (req, res) => {
   router.isActive = isActive;
   await router.save();
 
-  res
+  return res
     .status(200)
     .json(
       new ApiResponse(

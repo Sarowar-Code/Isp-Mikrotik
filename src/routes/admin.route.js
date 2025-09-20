@@ -12,7 +12,11 @@ import {
 import {
   assignRouter,
   deleteRouter,
+  getRouterPppProfiles,
+  getRouterPppSecrets,
+  getRouterStatus,
   registerRouter,
+  testRouterConnection,
   unAssignRouter,
   updateRouter,
 } from "../controllers/admin/router.controller.js";
@@ -55,5 +59,13 @@ router.route("/router/assignRouter").patch(verifyJWT, assignRouter);
 router.route("/router/unAssignRouter").patch(verifyJWT, unAssignRouter);
 router.route("/router/updateRouter").patch(verifyJWT, updateRouter);
 router.route("/router/deleteRouter").delete(verifyJWT, deleteRouter);
+router.route("/router/getRouterStatus").get(verifyJWT, getRouterStatus);
+router
+  .route("/router/testRouterConnection")
+  .get(verifyJWT, testRouterConnection);
+router
+  .route("/router/getRouterPppProfiles")
+  .get(verifyJWT, getRouterPppProfiles);
+router.route("/router/getRouterPppSecrets").get(verifyJWT, getRouterPppSecrets);
 
 export default router;

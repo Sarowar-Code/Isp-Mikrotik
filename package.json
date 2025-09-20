@@ -30,7 +30,7 @@
     "mongoose": "^8.16.5",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "multer": "^2.0.2",
-    "node-routeros-v2": "^1.6.12",
+    "node-routeros": "^1.6.8",
     "winston": "^3.15.0"
   }
 }

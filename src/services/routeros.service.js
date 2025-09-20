@@ -1,9 +1,11 @@
-import { RouterOSAPI } from "node-routeros-v2";
-import winston from "winston";
-import { Router } from "../models/router.model.js";
-import { ApiError } from "../utils/ApiError.js";
+import { RouterOSAPI } from "node-routeros"; // MikroTik API client
+import winston from "winston"; // Logging library
+import { Router } from "../models/router.model.js"; // MongoDB router model
+import { ApiError } from "../utils/ApiError.js"; // Custom API errors
 
-// Configure Winston logger
+// --------------------
+// Winston Logger Setup
+// --------------------
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
@@ -17,17 +19,16 @@ const logger = winston.createLogger({
       level: "error",
     }),
     new winston.transports.File({ filename: "logs/routeros-combined.log" }),
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
+    new winston.transports.Console({ format: winston.format.simple() }),
   ],
 });
 
 class RouterOSService {
   constructor() {
-    this.connections = new Map(); // Store active connections
-    this.maxRetries = 3;
-    this.retryDelay = 1000; // 1 second
+    this.connections = new Map(); // Stores active RouterOS connections
+    this.maxRetries = 3; // Retry connection attempts
+    this.retryDelay = 1000; // 1 second delay between retries
+    this.idleTimeout = 5 * 60 * 1000; // Auto-close idle connections after 5 min
   }
 
   /**
@@ -37,28 +38,28 @@ class RouterOSService {
    */
   async getConnection(routerId) {
     try {
-      // Check if connection already exists
+      // --------- Check existing connection ---------
       if (this.connections.has(routerId)) {
-        const connection = this.connections.get(routerId);
-        if (connection.connected) {
-          return connection;
+        const { client, timer } = this.connections.get(routerId);
+        if (client.isConnected) {
+          // <--- Router is already connected here
+          clearTimeout(timer); // Reset idle timer
+          this.connections.set(routerId, {
+            client,
+            timer: this.startIdleTimer(routerId), // Restart idle timeout
+          });
+          return client; // Return existing connection
         }
       }
 
-      // Get router details from database
+      // --------- Get router details from DB ---------
       const router = await Router.findById(routerId).select(
         "host port username password isActive"
       );
+      if (!router) throw new ApiError(404, "Router not found");
+      if (!router.isActive) throw new ApiError(400, "Router is inactive");
 
-      if (!router) {
-        throw new ApiError(404, "Router not found");
-      }
-
-      if (!router.isActive) {
-        throw new ApiError(400, "Router is inactive");
-      }
-
-      // Create new connection using node-routeros-v2
+      // --------- Create a new RouterOS client ---------
       const client = new RouterOSAPI({
         host: router.host,
         user: router.username,
@@ -68,33 +69,34 @@ class RouterOSService {
         keepalive: true,
       });
 
-      // Connect with retry logic
-      await this.connectWithRetry(client, routerId);
+      // --------- Connect to RouterOS with retry ---------
+      await this.connectWithRetry(client, routerId); // <--- Actual connection happens here
+      console.log("client :", client, routerId);
 
-      // Store connection
-      this.connections.set(routerId, client);
+      // --------- Store connection with idle timer ---------
+      this.connections.set(routerId, {
+        client,
+        timer: this.startIdleTimer(routerId),
+      });
 
       logger.info(`RouterOS connection established for router ${routerId}`);
       return client;
     } catch (error) {
       logger.error(
-        `Failed to get RouterOS connection for router ${routerId}:`,
-        error
+        `Failed to get RouterOS connection for router ${routerId}: ${error.message}`
       );
       throw new ApiError(500, `RouterOS connection failed: ${error.message}`);
     }
   }
 
-  /**
-   * Connect with retry logic
-   * @param {RouterOSAPI} client - RouterOS client
-   * @param {string} routerId - Router ID
-   */
+  // -----------------------
+  // Retry connection helper
+  // -----------------------
   async connectWithRetry(client, routerId) {
     let lastError;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        await client.connect();
+        await client.connect(); // <--- Here is where RouterOSAPI actually connects
         logger.info(
           `RouterOS connection successful for router ${routerId} (attempt ${attempt})`
         );
@@ -102,85 +104,55 @@ class RouterOSService {
       } catch (error) {
         lastError = error;
         logger.warn(
-          `RouterOS connection attempt ${attempt} failed for router ${routerId}:`,
-          error.message
+          `Connection attempt ${attempt} failed for router ${routerId}: ${error.message}`
         );
         if (attempt < this.maxRetries) {
           await this.delay(this.retryDelay * attempt);
         }
       }
     }
-    throw lastError;
+    throw lastError; // Throws if all retries fail
   }
 
-  /**
-   * Execute RouterOS command with error handling
-   * @param {string} routerId - Router ID
-   * @param {Array} command - RouterOS command array
-   * @returns {Promise<Object>} Command result
-   */
+  // -----------------------
+  // Execute RouterOS command
+  // -----------------------
   async executeCommand(routerId, command) {
-    const client = await this.getConnection(routerId);
+    const client = await this.getConnection(routerId); // Ensure connection exists
     try {
-      logger.info(
-        `Executing RouterOS command for router ${routerId}:`,
-        command
-      );
-      // node-routeros-v2 expects command as string and parameters as array
-      // If command is array, first element is path, rest are parameters
-      let cmd = command;
-      let params = [];
-      if (Array.isArray(command) && command.length > 0) {
+      let cmd, params;
+      if (Array.isArray(command)) {
         cmd = command[0];
-        params = command.slice(1);
+        params = command[1] || {};
+      } else {
+        cmd = command;
+        params = {};
       }
-      const result = await client.write(cmd, params);
-      logger.info(
-        `RouterOS command executed successfully for router ${routerId}`
-      );
+
+      logger.info(`Executing command for router ${routerId}: ${cmd}`, params);
+      const result = await client.write(cmd, params); // <--- Command sent to router
+      logger.info(`Command executed successfully for router ${routerId}`);
       return result;
     } catch (error) {
-      logger.error(`RouterOS command failed for router ${routerId}:`, error);
-      // If connection error, remove from cache and retry once
-      if (
-        error.message.includes("connection") ||
-        error.message.includes("timeout")
-      ) {
-        this.connections.delete(routerId);
-        try {
-          const newClient = await this.getConnection(routerId);
-          let cmd = command;
-          let params = [];
-          if (Array.isArray(command) && command.length > 0) {
-            cmd = command[0];
-            params = command.slice(1);
-          }
-          return await newClient.write(cmd, params);
-        } catch (retryError) {
-          throw new ApiError(
-            500,
-            `RouterOS command failed after retry: ${retryError.message}`
-          );
-        }
-      }
+      logger.error(`Command failed for router ${routerId}: ${error.message}`);
+      this.connections.delete(routerId); // Drop broken connection
       throw new ApiError(500, `RouterOS command failed: ${error.message}`);
     }
   }
 
-  /**
-   * Close specific router connection
-   * @param {string} routerId - Router ID
-   */
+  // -----------------------
+  // Close connections
+  // -----------------------
   async closeConnection(routerId) {
     if (this.connections.has(routerId)) {
-      const client = this.connections.get(routerId);
+      const { client, timer } = this.connections.get(routerId);
       try {
+        clearTimeout(timer);
         await client.close();
         logger.info(`RouterOS connection closed for router ${routerId}`);
       } catch (error) {
         logger.error(
-          `Error closing RouterOS connection for router ${routerId}:`,
-          error
+          `Error closing connection for router ${routerId}: ${error.message}`
         );
       } finally {
         this.connections.delete(routerId);
@@ -188,47 +160,31 @@ class RouterOSService {
     }
   }
 
-  /**
-   * Close all connections
-   */
   async closeAllConnections() {
-    const closePromises = Array.from(this.connections.keys()).map((routerId) =>
-      this.closeConnection(routerId)
+    const closePromises = Array.from(this.connections.keys()).map((id) =>
+      this.closeConnection(id)
     );
-
     await Promise.all(closePromises);
     logger.info("All RouterOS connections closed");
   }
 
-  /**
-   * Get connection status for a router
-   * @param {string} routerId - Router ID
-   * @returns {Object} Connection status
-   */
+  // -----------------------
+  // Utility functions
+  // -----------------------
   getConnectionStatus(routerId) {
-    const connection = this.connections.get(routerId);
-    return {
-      connected: connection ? connection.isConnected : false,
-      routerId,
-    };
+    const entry = this.connections.get(routerId);
+    console.log("ENTRY :", entry);
+    console.log("Connections :", this.connections);
+
+    return { connected: entry ? entry.client.isConnected : false, routerId };
   }
 
-  /**
-   * Health check for all active connections
-   * @returns {Array} Health status of all connections
-   */
   async healthCheck() {
     const healthStatus = [];
-
-    for (const [routerId, client] of this.connections) {
+    for (const [routerId, { client }] of this.connections) {
       try {
-        // Try to execute a simple command to check health
-        await client.send(["/system/identity/print"]);
-        healthStatus.push({
-          routerId,
-          status: "healthy",
-          connected: true,
-        });
+        await client.write("/system/identity/print");
+        healthStatus.push({ routerId, status: "healthy", connected: true });
       } catch (error) {
         healthStatus.push({
           routerId,
@@ -236,19 +192,19 @@ class RouterOSService {
           connected: false,
           error: error.message,
         });
-
-        // Remove unhealthy connection
         this.connections.delete(routerId);
       }
     }
-
     return healthStatus;
   }
 
-  /**
-   * Utility method for delay
-   * @param {number} ms - Milliseconds to delay
-   */
+  startIdleTimer(routerId) {
+    return setTimeout(() => {
+      this.closeConnection(routerId);
+      logger.info(`RouterOS idle connection auto-closed for ${routerId}`);
+    }, this.idleTimeout);
+  }
+
   delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -259,13 +215,12 @@ export const routerOSService = new RouterOSService();
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
-  logger.info("Received SIGINT, closing RouterOS connections...");
+  logger.info("Received SIGINT, closing connections...");
   await routerOSService.closeAllConnections();
   process.exit(0);
 });
-
 process.on("SIGTERM", async () => {
-  logger.info("Received SIGTERM, closing RouterOS connections...");
+  logger.info("Received SIGTERM, closing connections...");
   await routerOSService.closeAllConnections();
   process.exit(0);
 });

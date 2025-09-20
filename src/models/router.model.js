@@ -21,7 +21,8 @@ const routerSchema = new Schema(
     },
     port: {
       type: Number,
-      default: 8728, // MikroTik API default port
+      default: 8728,
+      // MikroTik API default port
     },
     username: {
       type: String,

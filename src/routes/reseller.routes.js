@@ -27,4 +27,5 @@ router
   .route("/updateResellerDetails")
   .patch(verifyJWT, updateResellerAccountDetails);
 router.route("/updateAvatar").patch(verifyJWT, updateResellerAvatar);
+router.route("/updateAvatar").patch(verifyJWT, updateResellerAvatar);
 export default router;
