@@ -215,8 +215,6 @@ const testRouterConnection = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Router not found");
   }
 
-  console.log("ROUTER", router);
-
   try {
     const testClient = new RouterOSAPI({
       host: router.host,
@@ -260,29 +258,26 @@ const testRouterConnection = asyncHandler(async (req, res) => {
 });
 
 // Get Router Status
-const getRouterStatus = asyncHandler(async (req, res) => {
-  const { id } = req.query;
 
-  const router = await Router.findById(id);
-  if (!router) {
-    throw new ApiError(404, "Router not found");
-  }
+const getRouterStatus = async (req, res) => {
+  const { id: routerId } = req.query;
 
-  const connectionStatus = routerOSService.getConnectionStatus(router._id);
+  // Ensure connection exists
+  const client = await routerOSService.getConnection(routerId);
 
-  res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        routerId: id,
-        isActive: router.isActive,
-        connectionStatus,
-        lastChecked: new Date(),
-      },
-      "Router status retrieved successfully"
-    )
-  );
-});
+  const status = await routerOSService.getConnectionStatus(routerId);
+
+  res.json({
+    success: true,
+    message: "Router status retrieved successfully",
+    data: {
+      routerId,
+      isActive: true, // From DB or logic
+      connectionStatus: status,
+      lastChecked: new Date(),
+    },
+  });
+};
 
 // Get Router System Information
 const getRouterSystemInfo = asyncHandler(async (req, res) => {
