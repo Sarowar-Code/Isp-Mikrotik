@@ -281,7 +281,7 @@ const getRouterStatus = async (req, res) => {
 
 // Get Router System Information
 const getRouterSystemInfo = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -325,7 +325,7 @@ const getRouterSystemInfo = asyncHandler(async (req, res) => {
 
 // Get Router Interfaces
 const getRouterInterfaces = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -421,7 +421,7 @@ const getRouterPppProfiles = asyncHandler(async (req, res) => {
 
 // Get Router Active Connections
 const getRouterActiveConnections = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -452,7 +452,7 @@ const getRouterActiveConnections = asyncHandler(async (req, res) => {
 
 // Get Router Queue Rules
 const getRouterQueueRules = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -506,11 +506,11 @@ const executeRouterOSCommand = asyncHandler(async (req, res) => {
   } catch (error) {
     throw new ApiError(500, `RouterOS command failed: ${error.message}`);
   }
-});
+}); // This will add while need.
 
 // Get Router Health Status
 const getRouterHealthStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   const router = await Router.findById(id);
   if (!router) {
@@ -543,7 +543,7 @@ const getRouterHealthStatus = asyncHandler(async (req, res) => {
 
 // Toggle Router Status
 const toggleRouterStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
   const { isActive } = req.body;
 
   if (typeof isActive !== "boolean") {
