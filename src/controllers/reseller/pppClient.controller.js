@@ -1,4 +1,4 @@
-import { body, param, validationResult } from "express-validator";
+import { validationResult } from "express-validator";
 import { Package } from "../../models/package.model.js";
 import { PppClient } from "../../models/pppClient.model.js";
 import { Router } from "../../models/router.model.js";
@@ -31,66 +31,46 @@ const assertPackageOwnedByReseller = async (packageId, resellerId) => {
   return packageDoc;
 };
 
-// Validation rules
-export const validateCreatePppClient = [
-  body("name").notEmpty().withMessage("Name is required"),
-  body("userId").notEmpty().withMessage("User ID is required"),
-  body("email").isEmail().withMessage("Valid email is required"),
-  body("password")
-    .isLength({ min: 5 })
-    .withMessage("Password must be at least 5 characters"),
-  body("contact").notEmpty().withMessage("Contact is required"),
-  body("whatsapp").notEmpty().withMessage("WhatsApp is required"),
-  body("nid").isNumeric().withMessage("NID must be numeric"),
-  body("address.thana").notEmpty().withMessage("Thana is required"),
-  body("address.houseName").notEmpty().withMessage("House name is required"),
-  body("address.street").notEmpty().withMessage("Street is required"),
-  body("address.district").notEmpty().withMessage("District is required"),
-  body("address.division").notEmpty().withMessage("Division is required"),
-  body("package").isMongoId().withMessage("Valid package ID is required"),
-  body("routerId").isMongoId().withMessage("Valid router ID is required"),
-  body("routerosProfile")
-    .notEmpty()
-    .withMessage("RouterOS profile is required"),
-  body("paymentDeadline")
-    .isISO8601()
-    .withMessage("Valid payment deadline is required"),
-];
+const getAllPppProfiles = asyncHandler(async (req, res) => {
+  const { routerId } = req.query;
 
-export const validateUpdatePppClient = [
-  param("id").isMongoId().withMessage("Valid client ID is required"),
-  body("name").optional().notEmpty().withMessage("Name cannot be empty"),
-  body("email").optional().isEmail().withMessage("Valid email is required"),
-  body("contact").optional().notEmpty().withMessage("Contact cannot be empty"),
-  body("whatsapp")
-    .optional()
-    .notEmpty()
-    .withMessage("WhatsApp cannot be empty"),
-  body("nid").optional().isNumeric().withMessage("NID must be numeric"),
-  body("package")
-    .optional()
-    .isMongoId()
-    .withMessage("Valid package ID is required"),
-  body("routerId")
-    .optional()
-    .isMongoId()
-    .withMessage("Valid router ID is required"),
-  body("routerosProfile")
-    .optional()
-    .notEmpty()
-    .withMessage("RouterOS profile cannot be empty"),
-];
-
-// Create PPP Client
-export const createPppClient = asyncHandler(async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    throw new ApiError(400, "Validation failed", errors.array());
+  if (!routerId) {
+    throw new ApiError(400, "RouterId is required");
   }
 
+  const router = await assertRouterAssignedToReseller(routerId, req.auth._id);
+
+  if (!router) {
+    throw new ApiError(404, "Router not found");
+  }
+
+  try {
+    const profiles = await routerOSService.executeCommand(id, [
+      "/ppp/profile/print",
+    ]);
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          profiles,
+          "Router PPP profiles retrieved successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(
+      500,
+      `Failed to get router PPP profiles: ${error.message}`
+    );
+  }
+});
+
+// Create PPP Client
+const createPppClient = asyncHandler(async (req, res) => {
   const {
     name,
-    userId,
+    username, // optional
     email,
     password,
     contact,
@@ -98,19 +78,31 @@ export const createPppClient = asyncHandler(async (req, res) => {
     nid,
     address,
     clientType,
-    connectionType,
-    macAddress,
-    manualMac,
-    service,
-    package: packageId,
-    routerId,
-    routerosProfile,
+    connectionType, // service > pppoe
+    packageId,
     paymentDeadline,
   } = req.body;
 
+  if (
+    !name ||
+    !username ||
+    !email ||
+    !password ||
+    !contact ||
+    !whatsapp ||
+    !nid ||
+    !address ||
+    !clientType ||
+    !connectionType ||
+    !packageId ||
+    !paymentDeadline
+  ) {
+    throw new ApiError(400, "All Feilds are required");
+  }
+
   // Check if user already exists
   const existingClient = await PppClient.findOne({
-    $or: [{ email }, { userId }],
+    $or: [{ email }, { username }],
   });
 
   if (existingClient) {

@@ -266,8 +266,7 @@ const testRouterConnection = asyncHandler(async (req, res) => {
 });
 
 // Get Router Status
-
-const getRouterStatus = async (req, res) => {
+const getRouterStatus = asyncHandler(async (req, res) => {
   const { id: routerId } = req.query;
 
   // Ensure connection exists
@@ -285,7 +284,7 @@ const getRouterStatus = async (req, res) => {
       lastChecked: new Date(),
     },
   });
-};
+});
 
 // Get Router System Information
 const getRouterSystemInfo = asyncHandler(async (req, res) => {
@@ -602,3 +601,12 @@ export {
   unAssignRouter,
   updateRouter,
 };
+
+// write another controller which will retrive pppClietns fro router
+// create pppclient > bysyncing router
+// create pppclient > for new client. via site
+// update > db and router
+// delete > db and router
+// get > db
+// anable > db and router
+// disable > db and router
