@@ -78,12 +78,20 @@ const getRouter = asyncHandler(async (req, res) => {
 });
 
 const updateRouter = asyncHandler(async (req, res) => {
-  const { id } = req.query;
-  const { host, port, username, password, apiType, notes, isActive, status } =
-    req.body;
+  const {
+    routerId,
+    host,
+    port,
+    username,
+    password,
+    apiType,
+    notes,
+    isActive,
+    status,
+  } = req.body;
 
   // Find router
-  const router = await Router.findById(id);
+  const router = await Router.findById(routerId);
   if (!router) {
     throw new ApiError(404, "Router not found");
   }

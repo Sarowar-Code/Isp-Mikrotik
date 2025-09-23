@@ -59,7 +59,7 @@ router.route("/getAllReseller").get(verifyJWT, getAllResellers);
 router.route("/getReseller").get(verifyJWT, getResellerById);
 router.route("/deleteReseller").delete(verifyJWT, deleteResellerById);
 
-// Router Management //
+//----------------------------------------- Router Management //
 router.route("/router/createRouter").post(verifyJWT, registerRouter);
 router.route("/router/assignRouter").patch(verifyJWT, assignRouter);
 router.route("/router/unAssignRouter").patch(verifyJWT, unAssignRouter);
@@ -83,5 +83,7 @@ router
 router
   .route("/router/getRouterActiveConnections")
   .get(verifyJWT, getRouterActiveConnections);
+
+//----------------------------------------------- Package Management //
 
 export default router;

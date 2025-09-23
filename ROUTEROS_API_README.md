@@ -10,22 +10,22 @@ The RouterOS API integration provides full CRUD operations for managing PPP user
 
 ### ✅ Core Features
 
--   **Full PPP User Management** - Create, read, update, delete PPP users
--   **RouterOS Profile Management** - Manage PPP profiles with all RouterOS parameters
--   **Router Management** - Add, configure, and monitor multiple routers
--   **Real-time Synchronization** - Automatic sync between database and RouterOS
--   **Connection Pooling** - Efficient connection management for multiple routers
--   **Bulk Operations** - Bulk sync, enable/disable operations
--   **Health Monitoring** - Real-time monitoring of router connections and system health
+- **Full PPP User Management** - Create, read, update, delete PPP users
+- **RouterOS Profile Management** - Manage PPP profiles with all RouterOS parameters
+- **Router Management** - Add, configure, and monitor multiple routers
+- **Real-time Synchronization** - Automatic sync between database and RouterOS
+- **Connection Pooling** - Efficient connection management for multiple routers
+- **Bulk Operations** - Bulk sync, enable/disable operations
+- **Health Monitoring** - Real-time monitoring of router connections and system health
 
 ### ✅ Production Features
 
--   **Rate Limiting** - Prevents API abuse with configurable limits
--   **Security** - Helmet.js security headers, input validation
--   **Error Handling** - Comprehensive error handling with retry logic
--   **Logging** - Winston-based logging with file rotation
--   **Monitoring** - System metrics, alerts, and performance monitoring
--   **Graceful Shutdown** - Proper cleanup of connections on shutdown
+- **Rate Limiting** - Prevents API abuse with configurable limits
+- **Security** - Helmet.js security headers, input validation
+- **Error Handling** - Comprehensive error handling with retry logic
+- **Logging** - Winston-based logging with file rotation
+- **Monitoring** - System metrics, alerts, and performance monitoring
+- **Graceful Shutdown** - Proper cleanup of connections on shutdown
 
 ## API Endpoints
 
@@ -284,29 +284,29 @@ POST /api/v1/routers/64f8a1b2c3d4e5f6a7b8c9d1/execute-command
 
 The API provides comprehensive error handling with appropriate HTTP status codes:
 
--   `400` - Bad Request (validation errors, invalid parameters)
--   `401` - Unauthorized (authentication required)
--   `403` - Forbidden (insufficient permissions)
--   `404` - Not Found (resource not found)
--   `429` - Too Many Requests (rate limit exceeded)
--   `500` - Internal Server Error (server errors, RouterOS connection failures)
+- `400` - Bad Request (validation errors, invalid parameters)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found (resource not found)
+- `429` - Too Many Requests (rate limit exceeded)
+- `500` - Internal Server Error (server errors, RouterOS connection failures)
 
 ## Monitoring and Logging
 
 ### Log Files
 
--   `logs/routeros-error.log` - RouterOS specific errors
--   `logs/routeros-combined.log` - All RouterOS operations
--   `logs/monitoring-error.log` - Monitoring errors
--   `logs/monitoring-combined.log` - All monitoring operations
+- `logs/routeros-error.log` - RouterOS specific errors
+- `logs/routeros-combined.log` - All RouterOS operations
+- `logs/monitoring-error.log` - Monitoring errors
+- `logs/monitoring-combined.log` - All monitoring operations
 
 ### Monitoring Metrics
 
--   Router connection status
--   PPP client sync statistics
--   System performance metrics
--   Error rates and alerts
--   Connection pool status
+- Router connection status
+- PPP client sync statistics
+- System performance metrics
+- Error rates and alerts
+- Connection pool status
 
 ## Security Considerations
 
@@ -330,20 +330,20 @@ The API provides comprehensive error handling with appropriate HTTP status codes
 
 1. **Router Connection Failed**
 
-    - Check router credentials
-    - Verify network connectivity
-    - Check firewall settings
+   - Check router credentials
+   - Verify network connectivity
+   - Check firewall settings
 
 2. **Sync Failures**
 
-    - Check RouterOS API permissions
-    - Verify profile names exist
-    - Check for duplicate entries
+   - Check RouterOS API permissions
+   - Verify profile names exist
+   - Check for duplicate entries
 
 3. **Rate Limit Exceeded**
-    - Wait for rate limit window to reset
-    - Implement client-side rate limiting
-    - Contact administrator for limit increase
+   - Wait for rate limit window to reset
+   - Implement client-side rate limiting
+   - Contact administrator for limit increase
 
 ### Debug Mode
 
@@ -361,3 +361,17 @@ For issues and questions:
 ## License
 
 This RouterOS API integration is part of the ISP MikroTik Web Panel project.
+
+// Routes Which are done
+
+> > SuperAdmin
+> > Admin
+> > Reseller
+> > RouterByAdmin
+
+// Routes will be done
+
+> > pppClients
+> > package/profiles
+> > olt
+> > RouterByReseller

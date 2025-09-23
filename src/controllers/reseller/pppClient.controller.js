@@ -466,6 +466,7 @@ export const syncPppClient = asyncHandler(async (req, res) => {
       const secretId = existingSecrets[0][".id"];
       const command = [
         "/ppp/secret/set",
+
         `=.id=${secretId}`,
         `=name=${client.userId}`,
         `=password=${client.password}`,
