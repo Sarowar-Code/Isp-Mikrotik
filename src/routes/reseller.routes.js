@@ -4,6 +4,12 @@ import {
   logoutReseller,
   refreshAccessToken,
 } from "../controllers/reseller/auth.controller.js";
+import { createPackage } from "../controllers/reseller/package.controller.js";
+import {
+  createPppClient,
+  getAllPppProfiles,
+  updatePppClient,
+} from "../controllers/reseller/pppClient.controller.js";
 import {
   getCurretReseller,
   updateResellerAccountDetails,
@@ -27,5 +33,15 @@ router
   .route("/updateResellerDetails")
   .patch(verifyJWT, updateResellerAccountDetails);
 router.route("/updateAvatar").patch(verifyJWT, updateResellerAvatar);
-router.route("/updateAvatar").patch(verifyJWT, updateResellerAvatar);
+
+// -----------------------PPP Client Routes---------------------------
+
+router.route("/getRouterPppSecrets").get(verifyJWT, getAllPppProfiles);
+router.route("/createPppClient").post(verifyJWT, createPppClient);
+router.route("/updatePppClient").post(verifyJWT, updatePppClient);
+
+// -----------------------Packages Routes---------------------------
+
+router.route("/createPackage").post(verifyJWT, createPackage);
+
 export default router;

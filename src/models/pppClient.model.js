@@ -8,6 +8,7 @@ const pppClientSchema = new Schema(
       required: true,
     },
     name: {
+      // same as router
       type: String,
       required: true,
       trim: true,
@@ -16,14 +17,6 @@ const pppClientSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true,
-      index: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
       trim: true,
       index: true,
     },
@@ -82,7 +75,10 @@ const pppClientSchema = new Schema(
       type: String,
       enum: ["pppoe", "hotspot", "dhcp", "static"],
       default: "pppoe",
-      required: true,
+    },
+    macAddress: {
+      type: String,
+      default: "",
     },
     packageId: {
       type: Schema.Types.ObjectId,
@@ -112,7 +108,7 @@ const pppClientSchema = new Schema(
       // synced From router nad save in db,
       type: String,
       enum: ["synced", "notSynced"],
-      default: "notSynced",
+      default: "synced",
     },
   },
 

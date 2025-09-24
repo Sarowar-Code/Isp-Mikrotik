@@ -437,7 +437,7 @@ const getRouterActiveConnections = asyncHandler(async (req, res) => {
 
   try {
     const activeConnections = await routerOSService.executeCommand(id, [
-      "/ppp/active/print",
+      "/ppp/secret/print",
     ]);
 
     res

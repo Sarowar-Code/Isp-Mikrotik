@@ -7,8 +7,19 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 
 // get All profile from router then, create package by syncing
 const createPackage = asyncHandler(async (req, res) => {
-  const { routerId, name, price, rateLimit, remoteAddress, localAddress } =
-    req.body;
+  const { routerId } = req.query;
+  const {
+    name,
+    price,
+    rateLimit,
+    remoteAddress,
+    localAddress,
+    onlyOne,
+    description,
+    sessionTimeout,
+    idleTimeout,
+    billingCycle,
+  } = req.body;
 
   if (
     !routerId ||
@@ -83,30 +94,56 @@ const updatePackage = asyncHandler(async (req, res) => {
     syncStatus,
   } = req.body;
 
-  // Find package
-  const pkg = await Package.find(packageId);
+  // 1. Find package
+  const pkg = await Package.findById(packageId).populate("routerId");
   if (!pkg) {
     throw new ApiError(404, "Package not found");
   }
 
-  // Only owner Reseller can update
+  // 2. Check ownership
   if (pkg.resellerId.toString() !== req.auth._id.toString()) {
     throw new ApiError(403, "You are not authorized to update this Package");
   }
 
+  // 3. Update in DB (local)
   if (name) pkg.name = name;
   if (price) pkg.price = price;
+  if (rateLimit) pkg.rateLimit = rateLimit;
   if (remoteAddress) pkg.remoteAddress = remoteAddress;
   if (localAddress) pkg.localAddress = localAddress;
-  if (rateLimit) pkg.rateLimit = rateLimit;
-  if (syncStatus) pkg.syncStatus = syncStatus;
-  if (isActive) pkg.isActive = isActive;
+  if (isActive !== undefined) pkg.isActive = isActive;
+  if (syncStatus !== undefined) pkg.syncStatus = syncStatus;
 
   await pkg.save();
 
+  // 4. Update in MikroTik RouterOS
+  try {
+    if (pkg.routerId) {
+      const ros = new RouterOSService(pkg.routerId);
+      await ros.connect();
+
+      await ros.api(`/ppp/profile/set`, {
+        ".id": pkg.routerProfileId, // must be stored when package was created
+        name: pkg.name,
+        rateLimit: pkg.rateLimit,
+        localAddress: pkg.localAddress,
+        remoteAddress: pkg.remoteAddress,
+        // add other props if needed
+      });
+
+      pkg.lastSyncAt = new Date();
+      pkg.syncError = "";
+      await pkg.save();
+    }
+  } catch (err) {
+    pkg.syncError = err.message;
+    await pkg.save();
+    throw new ApiError(500, `Router sync failed: ${err.message}`);
+  }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, pkg, "Package Updated Successfully"));
+    .json(new ApiResponse(200, pkg, "Package Updated & Synced Successfully"));
 });
 
 const deletePackage = asyncHandler(async (req, res) => {
