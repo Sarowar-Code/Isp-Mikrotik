@@ -13,13 +13,6 @@ const pppClientSchema = new Schema(
       required: true,
       trim: true,
     },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      index: true,
-    },
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -84,6 +77,10 @@ const pppClientSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Package",
       required: true,
+    },
+    packageName: {
+      type: String,
+      default: "",
     },
     paymentDeadline: {
       type: Date,

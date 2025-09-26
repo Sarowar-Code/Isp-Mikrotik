@@ -1,3 +1,4 @@
+import { RouterOSAPI } from "node-routeros";
 import { Package } from "../../models/package.model.js";
 import { PppClient } from "../../models/pppClient.model.js";
 import { Router } from "../../models/router.model.js";
@@ -5,7 +6,6 @@ import { routerOSService } from "../../services/routeros.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-
 const assertRouterAssignedToReseller = async (routerId, resellerId) => {
   const router = await Router.findById(routerId).select("assignedFor");
   if (!router) {
@@ -63,11 +63,9 @@ const getAllPppProfiles = asyncHandler(async (req, res) => {
   }
 });
 
-// Create PPP Client
 const createPppClient = asyncHandler(async (req, res) => {
   const {
     name,
-    username,
     email,
     password,
     contact,
@@ -79,14 +77,13 @@ const createPppClient = asyncHandler(async (req, res) => {
     packageId,
     paymentDeadline,
     routerId,
+    packageName = "",
     service = "pppoe", // default
-    isEnableOnRouter = false,
   } = req.body;
 
   // 1️⃣ Validate required fields
   if (
     !name ||
-    !username ||
     !email ||
     !password ||
     !contact ||
@@ -102,17 +99,19 @@ const createPppClient = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  // 2️⃣ Check duplicates
+  // 2️⃣ Check duplicates (DB)
   const existingClient = await PppClient.findOne({
-    $or: [{ email }, { username }],
+    routerId,
+    $or: [{ email }, { name }],
   });
   if (existingClient) {
     throw new ApiError(
       400,
-      "Client with this email or username already exists"
+      "Client with this email or name already exists on this router"
     );
   }
 
+  // 3️⃣ Prepare address
   const setAddress = {
     thana: req.auth.address.thana,
     district: req.auth.address.district,
@@ -121,15 +120,47 @@ const createPppClient = asyncHandler(async (req, res) => {
     street: address.street,
   };
 
-  // 3️⃣ Verify ownership
-  await assertPackageOwnedByReseller(packageId, req.auth._id);
-  const router = await assertRouterAssignedToReseller(routerId, req.auth._id);
+  // 4️⃣ Validate package & router
+  const pkg = await Package.findById(packageId);
+  if (!pkg) throw new ApiError(404, "Package not found");
 
-  // 4️⃣ Create DB entry (initial state)
+  await assertPackageOwnedByReseller(packageId, req.auth._id);
+  // const router = await assertRouterAssignedToReseller(routerId, req.auth._id);
+
+  const router = await Router.findById(routerId);
+
+  // 5️⃣ Create on RouterOS first
+  try {
+    const client = new RouterOSAPI({
+      host: router.host,
+      user: router.username,
+      password: router.password,
+      port: router.port || 8728,
+    });
+
+    await client.connect();
+
+    await client.write([
+      "/ppp/secret/add",
+      `=name=${name}`,
+      `=password=${password}`,
+      `=profile=${pkg.name || packageName}`,
+      `=service=${service}`,
+      `=comment=${name} - ${email}`,
+    ]);
+
+    await client.close();
+  } catch (err) {
+    throw new ApiError(
+      500,
+      `Failed to create PPP secret on router: ${err.message}`
+    );
+  }
+
+  // 6️⃣ Only if router success → Create DB record
   const pppClient = await PppClient.create({
     createdBy: req.auth._id,
     name,
-    username,
     email,
     password,
     contact,
@@ -140,42 +171,16 @@ const createPppClient = asyncHandler(async (req, res) => {
     connectionType,
     service,
     packageId,
+    packageName: pkg.name || packageName,
     routerId,
     paymentDeadline,
-    isEnableOnRouter,
-    syncStatus: "notSynced",
+    isEnableOnRouter: true,
+    syncStatus: "synced",
+    lastSyncAt: new Date(),
   });
 
-  // 5️⃣ Create PPP secret on RouterOS if enabled
-  if (isEnableOnRouter) {
-    try {
-      const command = [
-        "/ppp/secret/add",
-        `=name=${username}`,
-        `=password=${password}`,
-        `=profile=${packageId}`, // Or routerosProfile if stored
-        `=service=${service}`,
-        `=comment=${name} - ${email}`,
-      ];
-
-      await routerOSService.executeCommand(routerId, command);
-
-      pppClient.isEnableOnRouter = true;
-      pppClient.syncStatus = "synced";
-      pppClient.lastSyncAt = new Date();
-      await pppClient.save();
-    } catch (error) {
-      pppClient.syncStatus = "notSynced";
-      await pppClient.save();
-      throw new ApiError(
-        500,
-        `Failed to create PPP secret on router: ${error.message}`
-      );
-    }
-  }
-
-  // 6️⃣ Response
-  res
+  // 7️⃣ Response
+  return res
     .status(201)
     .json(new ApiResponse(201, pppClient, "PPP Client created successfully"));
 });

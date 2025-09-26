@@ -1,6 +1,7 @@
 import { Admin } from "../../models/admin.model.js";
 import { Package } from "../../models/package.model.js";
 import { Reseller } from "../../models/reseller.model.js";
+import { routerOSService } from "../../services/routeros.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -119,7 +120,7 @@ const updatePackage = asyncHandler(async (req, res) => {
   // 4. Update in MikroTik RouterOS
   try {
     if (pkg.routerId) {
-      const ros = new RouterOSService(pkg.routerId);
+      const ros = new routerOSService(pkg.routerId);
       await ros.connect();
 
       await ros.api(`/ppp/profile/set`, {
