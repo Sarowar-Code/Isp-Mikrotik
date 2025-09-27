@@ -6,6 +6,7 @@ import { routerOSService } from "../../services/routeros.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+
 const assertRouterAssignedToReseller = async (routerId, resellerId) => {
   const router = await Router.findById(routerId).select("assignedFor");
   if (!router) {
@@ -187,23 +188,7 @@ const createPppClient = asyncHandler(async (req, res) => {
 
 const updatePppClient = asyncHandler(async (req, res) => {
   const { clientId } = req.query;
-  const {
-    name,
-    username,
-    email,
-    password,
-    contact,
-    whatsapp,
-    nid,
-    address,
-    clientType,
-    connectionType,
-    packageId,
-    paymentDeadline,
-    routerId,
-    service = "pppoe",
-    isEnableOnRouter,
-  } = req.body;
+  const updates = req.body;
 
   // 1️⃣ Find client
   const pppClient = await PppClient.findById(clientId);
@@ -216,45 +201,33 @@ const updatePppClient = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You are not authorized to update this Client");
   }
 
-  // 3️⃣ Update only provided fields
-  if (name) pppClient.name = name;
-  if (username) pppClient.username = username;
-  if (email) pppClient.email = email;
-  if (password) pppClient.password = password;
-  if (contact) pppClient.contact = contact;
-  if (whatsapp) pppClient.whatsapp = whatsapp;
-  if (nid) pppClient.nid = nid;
-  if (address) pppClient.address = address;
-  if (clientType) pppClient.clientType = clientType;
-  if (connectionType) pppClient.connectionType = connectionType;
-  if (packageId) pppClient.packageId = packageId;
-  if (paymentDeadline) pppClient.paymentDeadline = paymentDeadline;
-  if (routerId) pppClient.routerId = routerId;
-  if (service) pppClient.service = service;
-  if (isEnableOnRouter !== undefined)
-    pppClient.isEnableOnRouter = isEnableOnRouter;
+  // 3️⃣ Get package details if updating package
+  let profileName = pppClient.packageName;
+  if (updates.packageId) {
+    const pkg = await Package.findById(updates.packageId);
+    if (!pkg) throw new ApiError(404, "Package not found");
+    profileName = pkg.name;
+  }
 
-  // 4️⃣ Save to DB first
-  await pppClient.save();
-
-  // 5️⃣ Sync to RouterOS if enabled
+  // 4️⃣ If client is enabled on router → update RouterOS first
   if (pppClient.isEnableOnRouter) {
     try {
       const command = [
         "/ppp/secret/set",
-        `=.id=${pppClient.username}`, // or use RouterOS internal ID if you sync that
-        `=name=${pppClient.username}`,
-        `=password=${pppClient.password}`,
-        `=profile=${pppClient.packageId}`, // map to profile name
-        `=service=${pppClient.service}`,
-        `=comment=${pppClient.name} - ${pppClient.email}`,
+        `=.id=${pppClient.routerOsId}`, // stored during creation
+        `=name=${updates.username || pppClient.username}`,
+        `=password=${updates.password || pppClient.password}`,
+        `=profile=${profileName}`,
+        `=service=${updates.service || pppClient.service}`,
+        `=comment=${updates.name || pppClient.name} - ${
+          updates.email || pppClient.email
+        }`,
       ];
 
       await routerOSService.executeCommand(pppClient.routerId, command);
 
       pppClient.syncStatus = "synced";
       pppClient.lastSyncAt = new Date();
-      await pppClient.save();
     } catch (error) {
       pppClient.syncStatus = "notSynced";
       await pppClient.save();
@@ -265,10 +238,55 @@ const updatePppClient = asyncHandler(async (req, res) => {
     }
   }
 
+  // 5️⃣ Apply updates to DB
+  Object.keys(updates).forEach((key) => {
+    pppClient[key] = updates[key];
+  });
+  if (profileName) pppClient.packageName = profileName;
+
+  await pppClient.save();
+
   // 6️⃣ Response
   return res
     .status(200)
     .json(new ApiResponse(200, pppClient, "PPP Client updated successfully"));
 });
 
-export { createPppClient, getAllPppProfiles, updatePppClient };
+const deletePppClient = asyncHandler(async (req, res) => {
+  const { clientId } = req.query;
+
+  // 1️⃣ Find client
+  const pppClient = await PppClient.findById(clientId);
+  if (!pppClient) {
+    throw new ApiError(404, "PPP Client not found");
+  }
+
+  // 2️⃣ Ownership check
+  if (pppClient.createdBy.toString() !== req.auth._id.toString()) {
+    throw new ApiError(403, "You are not authorized to delete this Client");
+  }
+
+  // 3️⃣ Delete from RouterOS if enabled
+  if (pppClient.isEnableOnRouter && pppClient.routerOsId) {
+    try {
+      const command = ["/ppp/secret/remove", `=.id=${pppClient.routerOsId}`];
+
+      await routerOSService.executeCommand(pppClient.routerId, command);
+    } catch (error) {
+      throw new ApiError(
+        500,
+        `Failed to delete PPP client from router: ${error.message}`
+      );
+    }
+  }
+
+  // 4️⃣ Delete from DB
+  await pppClient.deleteOne();
+
+  // 5️⃣ Response
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "PPP Client deleted successfully"));
+});
+
+export { createPppClient, deletePppClient, getAllPppProfiles, updatePppClient };
