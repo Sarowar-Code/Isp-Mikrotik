@@ -361,17 +361,3 @@ For issues and questions:
 ## License
 
 This RouterOS API integration is part of the ISP MikroTik Web Panel project.
-
-// Routes Which are done
-
-> > SuperAdmin
-> > Admin
-> > Reseller
-> > RouterByAdmin
-
-// Routes will be done
-
-> > pppClients
-> > package/profiles
-> > olt
-> > RouterByReseller
