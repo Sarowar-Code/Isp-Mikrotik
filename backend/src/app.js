@@ -35,7 +35,7 @@ app.use("/api/v1/routeros-profiles", routerOSLimiter);
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: "http://localhost:3000", // frontend URL
     credentials: true,
   })
 );
@@ -52,7 +52,7 @@ import superAdminRouter from "./routes/superAdmin.routes.js";
 
 // routes declaration ====><====
 // SuperAmin
-app.use("/api/v1/superAdmin", superAdminRouter);
+app.use("/api/v1/superadmin", superAdminRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/reseller", resellerRouter);
 
