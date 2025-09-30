@@ -29,7 +29,7 @@ export default function SuperAdminDashboardPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">SuperAdmin</BreadcrumbLink>
+                  <BreadcrumbLink href="#">Admin</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
