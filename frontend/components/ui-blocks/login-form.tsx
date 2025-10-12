@@ -8,96 +8,105 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { loginUser, Role } from "@/lib/api/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-type Role = "superadmin" | "admin" | "reseller";
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-interface LoginFormProps extends React.ComponentProps<"div"> {
-  role: Role;
-}
-
-export function LoginForm({ role, className, ...props }: LoginFormProps) {
+export function LoginForm({ role }: { role: Role }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const titles: Record<Role, string> = {
-    superadmin: "Super Admin Login",
-    admin: "Admin Login",
-    reseller: "Reseller Login",
-  };
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-  const descriptions: Record<Role, string> = {
-    superadmin: "Login with your super admin credentials",
-    admin: "Login with your admin account",
-    reseller: "Login to manage your reseller account",
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      email: formData.get("email"),
-      password: formData.get("password"),
-    };
-
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+    setLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/${role}/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include", // crucial for cookies
-          body: JSON.stringify(data),
-        }
-      );
+      const res = await loginUser(role, data); // ✅ using helper
 
       if (!res.ok) {
-        throw new Error("Invalid credentials");
-      }
+        if (res.status === 404) {
+          form.setError("email", { message: "User not found" });
+        } else if (res.status === 401) {
+          form.setError("password", { message: "Invalid credentials" });
+        } else {
+          form.setError("root", { message: "Login failed. Try again." });
+        }
 
-      // redirect based on role
+        return;
+      }
+      console.log("DATA :", data);
+
+      console.log("Response OK:", res);
+
       router.push(`/${role}/dashboard`);
     } catch (err) {
-      console.error(err);
-      alert("Login failed");
+      form.setError("root", {
+        message: `Server error. Please try again.${err}`,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>{titles[role]}</CardTitle>
-          <CardDescription>{descriptions[role]}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading
-                    ? "Logging in..."
-                    : `Login as ${titles[role].replace(" Login", "")}`}
-                </Button>
-              </div>
-            </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {role.charAt(0).toUpperCase() + role.slice(1)} Login
+        </CardTitle>
+        <CardDescription>Login with your {role} credentials</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <Label>Email</Label>
+                  <Input type="email" {...field} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <Label>Password</Label>
+                  <Input type="password" {...field} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {form.formState.errors.root && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.root.message}
+              </p>
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Logging in..." : `Login as ${role}`}
+            </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

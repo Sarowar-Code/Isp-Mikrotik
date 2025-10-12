@@ -1,47 +1,54 @@
+import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
-// Only protect dashboard and other private pages, NOT login pages
-const protectedRoutes = [
-  "/superadmin/dashboard",
-  "/admin/dashboard",
-  "/reseller/dashboard",
-  // add more protected subroutes if needed
+const globalRoutes = [
+  "/superadmin/login",
+  "/admin/login",
+  "/reseller/login",
+  "/unauthorized",
+  "/",
 ];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-  // Check if the current path is protected
-  const isProtected = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isGlobal =
+    pathname === "/" ||
+    globalRoutes
+      .filter((route) => route !== "/")
+      .some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
-  if (!isProtected) {
+  if (isGlobal) {
     return NextResponse.next();
   }
 
-  // Check for auth cookie (adjust cookie name as per your backend)
-  const token = request.cookies.get("token")?.value;
+  const token = req.cookies.get("accessToken")?.value;
+  if (!token) return NextResponse.redirect(new URL("/", req.url));
 
-  if (!token) {
-    // Redirect to the correct login page based on role
-    let loginUrl = "/login";
-    if (pathname.startsWith("/superadmin")) loginUrl = "/superadmin/login";
-    else if (pathname.startsWith("/admin")) loginUrl = "/admin/login";
-    else if (pathname.startsWith("/reseller")) loginUrl = "/reseller/login";
+  let decoded;
+  try {
+    decoded = jwt.decode(token);
+  } catch {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
 
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+  if (!decoded?.role) return NextResponse.redirect(new URL("/", req.url));
+
+  const roleRoutes = {
+    superadmin: "/superadmin",
+    admin: "/admin",
+    reseller: "/reseller",
+  };
+
+  const expectedPrefix = roleRoutes[decoded.role];
+
+  if (!pathname.startsWith(expectedPrefix)) {
+    return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
   return NextResponse.next();
 }
 
-// Configure matcher for protected dashboard routes only
 export const config = {
-  matcher: [
-    "/superadmin/dashboard/:path*",
-    "/admin/dashboard/:path*",
-    "/reseller/dashboard/:path*",
-    // add more if you have other protected subroutes
-  ],
+  matcher: ["/superadmin/:path*", "/admin/:path*", "/reseller/:path*"],
 };

@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/ui-blocks/login-form.tsx";
+import { LoginForm } from "@/components/ui-blocks/login-form";
 
 export default function AdminLoginPage() {
   return (

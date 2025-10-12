@@ -41,7 +41,7 @@ router.route("/login").post(loginAdmin);
 
 // Secured Routes - Login required
 router.route("/logout").post(verifyJWT, logoutAdmin);
-router.route("/getCurretAdmin").get(verifyJWT, getCurretAdmin);
+router.route("/getCurrentAuthDetails").get(verifyJWT, getCurretAdmin);
 router
   .route("/updateAccountDetails")
   .patch(verifyJWT, updateAdminAccountDetails);

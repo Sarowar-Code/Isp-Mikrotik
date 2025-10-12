@@ -24,11 +24,11 @@ const router = Router();
 router.route("/login").post(loginReseller);
 router.route("/refresh-token").post(refreshAccessToken);
 
-// Reseller verified Route //
+// Reseller verified Route
 router.route("/logout").post(verifyJWT, logoutReseller);
 
 // Reseller Profile Routes
-router.route("/getCurrentReseller").get(verifyJWT, getCurretReseller);
+router.route("/getCurrentAuthDetails").get(verifyJWT, getCurretReseller);
 router
   .route("/updateResellerDetails")
   .patch(verifyJWT, updateResellerAccountDetails);

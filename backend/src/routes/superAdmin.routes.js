@@ -23,7 +23,7 @@ router.route("/login").post(loginSuperAdmin);
 
 // Secured superAdmin Routes - Login required
 router.route("/logout").post(verifyJWT, logoutSuperAdmin);
-router.route("/getCurrentSuperAdmin").get(verifyJWT, getCurrentSuperAdmin);
+router.route("/getCurrentAuthDetails").get(verifyJWT, getCurrentSuperAdmin);
 router.route("/refresh-token").post(refreshAccessToken);
 
 // Admin Routes

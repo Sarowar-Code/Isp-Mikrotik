@@ -22,15 +22,15 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     let secret, Model;
 
     switch (decoded.role) {
-      case "SuperAdmin":
+      case "superadmin":
         secret = process.env.SUPERADMIN_ACCESS_TOKEN_SECRET;
         Model = SuperAdmin;
         break;
-      case "Admin":
+      case "admin":
         secret = process.env.ADMIN_ACCESS_TOKEN_SECRET;
         Model = Admin;
         break;
-      case "Reseller":
+      case "reseller":
         secret = process.env.RESELLER_ACCESS_TOKEN_SECRET;
         Model = Reseller;
         break;
