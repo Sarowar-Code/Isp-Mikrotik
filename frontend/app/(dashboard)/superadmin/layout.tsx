@@ -22,10 +22,8 @@ interface Props {
 export default function SuperAdminLayout({ children }: Props) {
   return (
     <SidebarProvider>
-      {/* 👇 pass the role to AppSidebar */}
       <AppSidebar role={"superadmin"} />
       <SidebarInset>
-        {/* Header */}
         <header className="flex h-16 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
@@ -46,6 +44,7 @@ export default function SuperAdminLayout({ children }: Props) {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+        <Separator />
         {children}
       </SidebarInset>
     </SidebarProvider>
