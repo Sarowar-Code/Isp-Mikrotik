@@ -25,14 +25,29 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get("accessToken")?.value;
   if (!token) return NextResponse.redirect(new URL("/", req.url));
 
-  let decoded;
+  let decoded: any;
   try {
+    // Note: Using jwt.decode for now, but consider using jwt.verify with secret for production
     decoded = jwt.decode(token);
-  } catch {
+
+    // Basic token validation
+    if (!decoded || typeof decoded !== "object") {
+      throw new Error("Invalid token structure");
+    }
+
+    // Check token expiration if present
+    if (decoded.exp && decoded.exp < Date.now() / 1000) {
+      throw new Error("Token expired");
+    }
+  } catch (error) {
+    console.warn("Token validation failed:", error);
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  if (!decoded?.role) return NextResponse.redirect(new URL("/", req.url));
+  if (!decoded?.role) {
+    console.warn("Token missing role claim");
+    return NextResponse.redirect(new URL("/", req.url));
+  }
 
   const roleRoutes = {
     superadmin: "/superadmin",

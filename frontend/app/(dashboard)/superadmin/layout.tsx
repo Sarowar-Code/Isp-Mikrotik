@@ -1,5 +1,3 @@
-"use client";
-
 import { AppSidebar } from "@/components/ui-blocks/app-sidebar";
 import {
   Breadcrumb,
@@ -37,7 +35,9 @@ export default function SuperAdminLayout({ children }: Props) {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href={"/superadmin"}>Superadmin</BreadcrumbLink>
+                <BreadcrumbLink href={"/superadmin/dashboard"}>
+                  Superadmin
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>

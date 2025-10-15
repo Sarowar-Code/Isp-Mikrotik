@@ -1,6 +1,6 @@
 import { handleApiError } from "@/utils/handleApiError";
 import axiosInstance from "./axiosInstance";
-import { UserRole } from "./roles";
+import { UserRole } from "./axiosInstance";
 
 export interface ApiResponse<T> {
   statusCode: number;
@@ -12,7 +12,8 @@ export interface ApiResponse<T> {
 export class ApiClient {
   static async get<T>(url: string, role?: UserRole): Promise<ApiResponse<T>> {
     try {
-      const { data } = await axiosInstance.get<ApiResponse<T>>(url, { role });
+      const config = role ? { headers: { role } } : {};
+      const { data } = await axiosInstance.get<ApiResponse<T>>(url, config);
       return data;
     } catch (err) {
       throw new Error(handleApiError(err));
@@ -25,9 +26,8 @@ export class ApiClient {
     role?: UserRole
   ): Promise<ApiResponse<T>> {
     try {
-      const { data } = await axiosInstance.post<ApiResponse<T>>(url, body, {
-        role,
-      });
+      const config = role ? { headers: { role } } : {};
+      const { data } = await axiosInstance.post<ApiResponse<T>>(url, body, config);
       return data;
     } catch (err) {
       throw new Error(handleApiError(err));
@@ -40,9 +40,8 @@ export class ApiClient {
     role?: UserRole
   ): Promise<ApiResponse<T>> {
     try {
-      const { data } = await axiosInstance.put<ApiResponse<T>>(url, body, {
-        role,
-      });
+      const config = role ? { headers: { role } } : {};
+      const { data } = await axiosInstance.put<ApiResponse<T>>(url, body, config);
       return data;
     } catch (err) {
       throw new Error(handleApiError(err));
@@ -54,9 +53,8 @@ export class ApiClient {
     role?: UserRole
   ): Promise<ApiResponse<T>> {
     try {
-      const { data } = await axiosInstance.delete<ApiResponse<T>>(url, {
-        role,
-      });
+      const config = role ? { headers: { role } } : {};
+      const { data } = await axiosInstance.delete<ApiResponse<T>>(url, config);
       return data;
     } catch (err) {
       throw new Error(handleApiError(err));

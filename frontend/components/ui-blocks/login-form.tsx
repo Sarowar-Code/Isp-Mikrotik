@@ -36,28 +36,43 @@ export function LoginForm({ role }: { role: Role }) {
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     setLoading(true);
     try {
-      const res = await loginUser(role, data); // ✅ using helper
+      const res = await loginUser(role, data);
 
-      if (!res.ok) {
-        if (res.status === 404) {
+      // Check if login was successful
+      if (res.success) {
+        console.log("Login successful:", res);
+        // Redirect to dashboard on successful login
+        router.push(`/${role}/dashboard`);
+      } else {
+        // Handle unsuccessful login based on backend response
+        form.setError("root", {
+          message: res.message || "Login failed. Please try again.",
+        });
+      }
+    } catch (err: unknown) {
+      console.error("Login error:", err);
+
+      // Handle different types of errors
+      if (err.message) {
+        // Check for specific error messages from backend
+        if (
+          err.message.includes("User not found") ||
+          err.message.includes("404")
+        ) {
           form.setError("email", { message: "User not found" });
-        } else if (res.status === 401) {
+        } else if (
+          err.message.includes("Invalid credentials") ||
+          err.message.includes("401")
+        ) {
           form.setError("password", { message: "Invalid credentials" });
         } else {
-          form.setError("root", { message: "Login failed. Try again." });
+          form.setError("root", { message: err.message });
         }
-
-        return;
+      } else {
+        form.setError("root", {
+          message: "Server error. Please try again.",
+        });
       }
-      console.log("DATA :", data);
-
-      console.log("Response OK:", res);
-
-      router.push(`/${role}/dashboard`);
-    } catch (err) {
-      form.setError("root", {
-        message: `Server error. Please try again.${err}`,
-      });
     } finally {
       setLoading(false);
     }

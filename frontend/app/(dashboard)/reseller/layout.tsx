@@ -1,5 +1,3 @@
-"use client";
-
 import { AppSidebar } from "@/components/ui-blocks/app-sidebar";
 import {
   Breadcrumb,
@@ -37,7 +35,9 @@ export default function ResellerLayout({ children }: Props) {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href={"/reseller"}>Reseller</BreadcrumbLink>
+                <BreadcrumbLink href={"/reseller/dashboard"}>
+                  Reseller
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
