@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Schema, model } from "mongoose";
+import models, { Schema, model } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const resellerSchema = new Schema(
@@ -62,7 +62,6 @@ const resellerSchema = new Schema(
       },
     },
     avatar: {
-      // it can be Logo/Profile picture
       type: String,
     },
     refreshToken: {
@@ -76,6 +75,23 @@ const resellerSchema = new Schema(
       type: String,
       enum: ["Active", "Inactive"],
       default: "Active",
+    },
+    paymentInfo: {
+      monthlyFee: {
+        type: Number,
+        default: 0,
+      },
+      lastPaymentDate: {
+        type: Date,
+      },
+      nextPaymentDue: {
+        type: Date,
+      },
+      paymentStatus: {
+        type: String,
+        enum: ["Paid", "Pending", "Overdue"],
+        default: "Pending",
+      },
     },
   },
   { timestamps: true }
@@ -123,4 +139,4 @@ resellerSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-export const Reseller = model("Reseller", resellerSchema);
+export const Reseller = models.Reseller || model("Reseller", resellerSchema);

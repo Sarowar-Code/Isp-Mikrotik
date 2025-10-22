@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import models, { Schema, model } from "mongoose";
 
 const pppClientSchema = new Schema(
   {
@@ -82,11 +82,23 @@ const pppClientSchema = new Schema(
       type: String,
       default: "",
     },
-    paymentDeadline: {
-      type: Date,
-      required: true,
+    paymentInfo: {
+      monthlyFee: {
+        type: Number,
+        default: 0,
+      },
+      lastPaymentDate: {
+        type: Date,
+      },
+      nextPaymentDue: {
+        type: Date,
+      },
+      paymentStatus: {
+        type: String,
+        enum: ["Paid", "Pending", "Overdue"],
+        default: "Pending",
+      },
     },
-
     // RouterOS Integration Fields
     routerId: {
       type: Schema.Types.ObjectId,
@@ -112,4 +124,5 @@ const pppClientSchema = new Schema(
   { timestamps: true } // created at date is the clients signup date ,
 );
 
-export const PppClient = model("PppClient", pppClientSchema);
+export const PppClient =
+  models.PppClient || model("PppClient", pppClientSchema);

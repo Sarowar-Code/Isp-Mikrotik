@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { model, Schema } from "mongoose";
+import models, { Schema, model } from "mongoose";
 
 const adminSchema = new Schema(
   {
@@ -30,7 +30,6 @@ const adminSchema = new Schema(
       minlength: 5,
     },
     avatar: {
-      // it can be Logo/Profile picture
       type: String,
     },
     contact: {
@@ -68,6 +67,23 @@ const adminSchema = new Schema(
     role: {
       type: String,
       default: "Admin",
+    },
+    paymentInfo: {
+      monthlyFee: {
+        type: Number,
+        default: 0,
+      },
+      lastPaymentDate: {
+        type: Date,
+      },
+      nextPaymentDue: {
+        type: Date,
+      },
+      paymentStatus: {
+        type: String,
+        enum: ["Paid", "Pending", "Overdue"],
+        default: "Pending",
+      },
     },
   },
   {
@@ -113,4 +129,4 @@ adminSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-export const Admin = model("Admin", adminSchema);
+export const Admin = models.Admin || model("Admin", adminSchema);

@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import models, { Schema, model } from "mongoose";
 
 const routerSchema = new Schema(
   {
@@ -94,4 +94,4 @@ const routerSchema = new Schema(
   { timestamps: true }
 );
 
-export const Router = model("Router", routerSchema);
+export const Router = models.Router || model("Router", routerSchema);

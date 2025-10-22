@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { model, Schema } from "mongoose";
+import models, { model, Schema } from "mongoose";
 
 const superAdminSchema = new Schema(
   {
@@ -74,4 +74,5 @@ superAdminSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-export const SuperAdmin = model("SuperAdmin", superAdminSchema);
+export const SuperAdmin =
+  models.SuperAdmin || model("SuperAdmin", superAdminSchema);

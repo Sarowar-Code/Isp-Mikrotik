@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import models, { Schema, model } from "mongoose";
 
 const packageSchema = new Schema(
   {
@@ -89,4 +89,4 @@ const packageSchema = new Schema(
 // Unique package name per reseller
 packageSchema.index({ resellerId: 1, name: 1 }, { unique: true });
 
-export const Package = model("Package", packageSchema);
+export const Package = models.Package || model("Package", packageSchema);

@@ -24,31 +24,34 @@ import { useState } from "react";
 
 interface SubscriptionPlanData {
   planName: string;
+  planType: "starter" | "professional" | "enterprise" | "custom";
   description: string;
-  bandwidth: {
-    download: string;
-    upload: string;
-    unit: "Kbps" | "Mbps" | "Gbps";
+  limits: {
+    maxPPPUsers: string;
+    maxResellers: string;
+    maxRouters: string;
+    maxAdmins: string;
   };
   pricing: {
     amount: string;
     currency: string;
-    billingCycle: "daily" | "weekly" | "monthly" | "yearly";
+    billingCycle: "monthly" | "yearly";
   };
   features: {
-    dataLimit: string;
-    dataLimitUnit: "MB" | "GB" | "TB" | "unlimited";
-    validityDays: string;
-    simultaneousUsers: string;
-    priority: "low" | "medium" | "high";
+    apiAccess: boolean;
+    customBranding: boolean;
+    prioritySupport: boolean;
+    advancedAnalytics: boolean;
+    whiteLabel: boolean;
+    customIntegrations: boolean;
+    dedicatedSupport: boolean;
+    slaGuarantee: boolean;
   };
-  mikrotikSettings: {
-    queueType: string;
-    burstLimit: string;
-    burstThreshold: string;
-    burstTime: string;
+  trialInfo: {
+    isTrial: boolean;
+    trialDays: string;
   };
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "trial";
 }
 
 export default function CreateSubscriptionPlanPage() {
@@ -56,34 +59,37 @@ export default function CreateSubscriptionPlanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<SubscriptionPlanData>({
     planName: "",
+    planType: "starter",
     description: "",
-    bandwidth: {
-      download: "",
-      upload: "",
-      unit: "Mbps",
+    limits: {
+      maxPPPUsers: "",
+      maxResellers: "",
+      maxRouters: "",
+      maxAdmins: "1",
     },
     pricing: {
       amount: "",
-      currency: "BDT",
+      currency: "USD",
       billingCycle: "monthly",
     },
     features: {
-      dataLimit: "",
-      dataLimitUnit: "GB",
-      validityDays: "",
-      simultaneousUsers: "1",
-      priority: "medium",
+      apiAccess: false,
+      customBranding: false,
+      prioritySupport: false,
+      advancedAnalytics: false,
+      whiteLabel: false,
+      customIntegrations: false,
+      dedicatedSupport: false,
+      slaGuarantee: false,
     },
-    mikrotikSettings: {
-      queueType: "default-small",
-      burstLimit: "",
-      burstThreshold: "",
-      burstTime: "",
+    trialInfo: {
+      isTrial: false,
+      trialDays: "14",
     },
     status: "active",
   });
 
-  const handleInputChange = (field: keyof SubscriptionPlanData, value: any) => {
+  const handleInputChange = (field: keyof SubscriptionPlanData, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -93,12 +99,12 @@ export default function CreateSubscriptionPlanPage() {
   const handleNestedChange = (
     section: keyof SubscriptionPlanData,
     field: string,
-    value: any
+    value: string | boolean | number
   ) => {
     setFormData((prev) => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as Record<string, unknown>),
         [field]: value,
       },
     }));
@@ -135,22 +141,39 @@ export default function CreateSubscriptionPlanPage() {
               Basic Information
             </CardTitle>
             <CardDescription>
-              Basic details about the subscription plan
+              Basic details about the SaaS subscription plan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="planName">Plan Name *</Label>
                 <Input
                   id="planName"
-                  placeholder="e.g., Premium 50 Mbps"
+                  placeholder="e.g., Professional"
                   value={formData.planName}
                   onChange={(e) =>
                     handleInputChange("planName", e.target.value)
                   }
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="planType">Plan Type *</Label>
+                <Select
+                  value={formData.planType}
+                  onValueChange={(value) => handleInputChange("planType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select plan type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter">Starter</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="enterprise">Enterprise</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
@@ -164,14 +187,15 @@ export default function CreateSubscriptionPlanPage() {
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="trial">Trial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe the features and benefits of this plan"
+                  placeholder="Describe the target audience and key benefits of this plan"
                   value={formData.description}
                   onChange={(e) =>
                     handleInputChange("description", e.target.value)
@@ -183,62 +207,80 @@ export default function CreateSubscriptionPlanPage() {
           </CardContent>
         </Card>
 
-        {/* Bandwidth Configuration */}
+        {/* SaaS Platform Limits */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wifi className="h-5 w-5" />
-              Bandwidth Configuration
+              Platform Limits
             </CardTitle>
             <CardDescription>
-              Set download and upload speed limits
+              Set limits for users, resellers, and routers for this plan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="download">Download Speed *</Label>
+                <Label htmlFor="maxPPPUsers">Max PPP Users *</Label>
                 <Input
-                  id="download"
+                  id="maxPPPUsers"
                   type="number"
-                  placeholder="50"
-                  value={formData.bandwidth.download}
+                  placeholder="500 (or -1 for unlimited)"
+                  value={formData.limits.maxPPPUsers}
                   onChange={(e) =>
-                    handleNestedChange("bandwidth", "download", e.target.value)
+                    handleNestedChange("limits", "maxPPPUsers", e.target.value)
                   }
                   required
                 />
+                <div className="text-xs text-muted-foreground">
+                  Use -1 for unlimited
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upload">Upload Speed *</Label>
+                <Label htmlFor="maxResellers">Max Resellers</Label>
                 <Input
-                  id="upload"
+                  id="maxResellers"
                   type="number"
-                  placeholder="25"
-                  value={formData.bandwidth.upload}
+                  placeholder="10 (or -1 for unlimited)"
+                  value={formData.limits.maxResellers}
                   onChange={(e) =>
-                    handleNestedChange("bandwidth", "upload", e.target.value)
+                    handleNestedChange("limits", "maxResellers", e.target.value)
+                  }
+                />
+                <div className="text-xs text-muted-foreground">
+                  Use -1 for unlimited
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxRouters">Max Routers *</Label>
+                <Input
+                  id="maxRouters"
+                  type="number"
+                  placeholder="3 (or -1 for unlimited)"
+                  value={formData.limits.maxRouters}
+                  onChange={(e) =>
+                    handleNestedChange("limits", "maxRouters", e.target.value)
                   }
                   required
                 />
+                <div className="text-xs text-muted-foreground">
+                  Use -1 for unlimited
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Speed Unit *</Label>
-                <Select
-                  value={formData.bandwidth.unit}
-                  onValueChange={(value) =>
-                    handleNestedChange("bandwidth", "unit", value)
+                <Label htmlFor="maxAdmins">Max Admins</Label>
+                <Input
+                  id="maxAdmins"
+                  type="number"
+                  placeholder="1"
+                  value={formData.limits.maxAdmins}
+                  onChange={(e) =>
+                    handleNestedChange("limits", "maxAdmins", e.target.value)
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Kbps">Kbps</SelectItem>
-                    <SelectItem value="Mbps">Mbps</SelectItem>
-                    <SelectItem value="Gbps">Gbps</SelectItem>
-                  </SelectContent>
-                </Select>
+                />
+                <div className="text-xs text-muted-foreground">
+                  Usually 1 per subscription
+                </div>
               </div>
             </div>
           </CardContent>
@@ -262,7 +304,7 @@ export default function CreateSubscriptionPlanPage() {
                 <Input
                   id="amount"
                   type="number"
-                  placeholder="1500"
+                  placeholder="29"
                   value={formData.pricing.amount}
                   onChange={(e) =>
                     handleNestedChange("pricing", "amount", e.target.value)
@@ -282,8 +324,8 @@ export default function CreateSubscriptionPlanPage() {
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BDT">BDT (৳)</SelectItem>
                     <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="BDT">BDT (৳)</SelectItem>
                     <SelectItem value="EUR">EUR (€)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -300,8 +342,6 @@ export default function CreateSubscriptionPlanPage() {
                     <SelectValue placeholder="Select billing cycle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                   </SelectContent>
@@ -311,193 +351,162 @@ export default function CreateSubscriptionPlanPage() {
           </CardContent>
         </Card>
 
-        {/* Plan Features */}
+        {/* SaaS Features */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              Plan Features
+              SaaS Features
             </CardTitle>
             <CardDescription>
-              Configure data limits, validity, and other features
+              Configure the features included in this subscription plan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="dataLimit">Data Limit</Label>
-                <Input
-                  id="dataLimit"
-                  type="number"
-                  placeholder="100"
-                  value={formData.features.dataLimit}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="apiAccess"
+                  checked={formData.features.apiAccess}
                   onChange={(e) =>
-                    handleNestedChange("features", "dataLimit", e.target.value)
+                    handleNestedChange("features", "apiAccess", e.target.checked)
                   }
+                  className="rounded"
                 />
+                <Label htmlFor="apiAccess">API Access</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dataLimitUnit">Data Unit</Label>
-                <Select
-                  value={formData.features.dataLimitUnit}
-                  onValueChange={(value) =>
-                    handleNestedChange("features", "dataLimitUnit", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MB">MB</SelectItem>
-                    <SelectItem value="GB">GB</SelectItem>
-                    <SelectItem value="TB">TB</SelectItem>
-                    <SelectItem value="unlimited">Unlimited</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="validityDays">Validity (Days) *</Label>
-                <Input
-                  id="validityDays"
-                  type="number"
-                  placeholder="30"
-                  value={formData.features.validityDays}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="customBranding"
+                  checked={formData.features.customBranding}
                   onChange={(e) =>
-                    handleNestedChange(
-                      "features",
-                      "validityDays",
-                      e.target.value
-                    )
+                    handleNestedChange("features", "customBranding", e.target.checked)
                   }
-                  required
+                  className="rounded"
                 />
+                <Label htmlFor="customBranding">Custom Branding</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="simultaneousUsers">Simultaneous Users *</Label>
-                <Input
-                  id="simultaneousUsers"
-                  type="number"
-                  placeholder="1"
-                  value={formData.features.simultaneousUsers}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="prioritySupport"
+                  checked={formData.features.prioritySupport}
                   onChange={(e) =>
-                    handleNestedChange(
-                      "features",
-                      "simultaneousUsers",
-                      e.target.value
-                    )
+                    handleNestedChange("features", "prioritySupport", e.target.checked)
                   }
-                  required
+                  className="rounded"
                 />
+                <Label htmlFor="prioritySupport">Priority Support</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority Level *</Label>
-                <Select
-                  value={formData.features.priority}
-                  onValueChange={(value) =>
-                    handleNestedChange("features", "priority", value)
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="advancedAnalytics"
+                  checked={formData.features.advancedAnalytics}
+                  onChange={(e) =>
+                    handleNestedChange("features", "advancedAnalytics", e.target.checked)
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
+                  className="rounded"
+                />
+                <Label htmlFor="advancedAnalytics">Advanced Analytics</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="whiteLabel"
+                  checked={formData.features.whiteLabel}
+                  onChange={(e) =>
+                    handleNestedChange("features", "whiteLabel", e.target.checked)
+                  }
+                  className="rounded"
+                />
+                <Label htmlFor="whiteLabel">White Label</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="customIntegrations"
+                  checked={formData.features.customIntegrations}
+                  onChange={(e) =>
+                    handleNestedChange("features", "customIntegrations", e.target.checked)
+                  }
+                  className="rounded"
+                />
+                <Label htmlFor="customIntegrations">Custom Integrations</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="dedicatedSupport"
+                  checked={formData.features.dedicatedSupport}
+                  onChange={(e) =>
+                    handleNestedChange("features", "dedicatedSupport", e.target.checked)
+                  }
+                  className="rounded"
+                />
+                <Label htmlFor="dedicatedSupport">Dedicated Support</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="slaGuarantee"
+                  checked={formData.features.slaGuarantee}
+                  onChange={(e) =>
+                    handleNestedChange("features", "slaGuarantee", e.target.checked)
+                  }
+                  className="rounded"
+                />
+                <Label htmlFor="slaGuarantee">SLA Guarantee</Label>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* MikroTik Settings */}
+        {/* Trial Configuration */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              MikroTik Configuration
+              Trial Configuration
             </CardTitle>
             <CardDescription>
-              Advanced MikroTik RouterOS settings for this plan
+              Configure trial settings for this subscription plan
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="queueType">Queue Type</Label>
-                <Select
-                  value={formData.mikrotikSettings.queueType}
-                  onValueChange={(value) =>
-                    handleNestedChange("mikrotikSettings", "queueType", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select queue type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default-small">Default Small</SelectItem>
-                    <SelectItem value="ethernet-default">
-                      Ethernet Default
-                    </SelectItem>
-                    <SelectItem value="wireless-default">
-                      Wireless Default
-                    </SelectItem>
-                    <SelectItem value="synchronous-default">
-                      Synchronous Default
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="burstLimit">Burst Limit</Label>
-                <Input
-                  id="burstLimit"
-                  placeholder="e.g., 100M/50M"
-                  value={formData.mikrotikSettings.burstLimit}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isTrial"
+                  checked={formData.trialInfo.isTrial}
                   onChange={(e) =>
-                    handleNestedChange(
-                      "mikrotikSettings",
-                      "burstLimit",
-                      e.target.value
-                    )
+                    handleNestedChange("trialInfo", "isTrial", e.target.checked)
                   }
+                  className="rounded"
                 />
+                <Label htmlFor="isTrial">Enable Free Trial</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="burstThreshold">Burst Threshold</Label>
-                <Input
-                  id="burstThreshold"
-                  placeholder="e.g., 80M/40M"
-                  value={formData.mikrotikSettings.burstThreshold}
-                  onChange={(e) =>
-                    handleNestedChange(
-                      "mikrotikSettings",
-                      "burstThreshold",
-                      e.target.value
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="burstTime">Burst Time (seconds)</Label>
-                <Input
-                  id="burstTime"
-                  type="number"
-                  placeholder="8"
-                  value={formData.mikrotikSettings.burstTime}
-                  onChange={(e) =>
-                    handleNestedChange(
-                      "mikrotikSettings",
-                      "burstTime",
-                      e.target.value
-                    )
-                  }
-                />
-              </div>
+              {formData.trialInfo.isTrial && (
+                <div className="space-y-2">
+                  <Label htmlFor="trialDays">Trial Duration (Days)</Label>
+                  <Input
+                    id="trialDays"
+                    type="number"
+                    placeholder="14"
+                    value={formData.trialInfo.trialDays}
+                    onChange={(e) =>
+                      handleNestedChange("trialInfo", "trialDays", e.target.value)
+                    }
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
+
 
         {/* Action Buttons */}
         <Card>

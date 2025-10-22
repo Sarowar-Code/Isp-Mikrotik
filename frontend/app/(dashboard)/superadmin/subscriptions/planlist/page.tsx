@@ -21,33 +21,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DollarSign,
   Download,
   Edit,
   Eye,
   Filter,
+  Globe,
   MoreHorizontal,
+  Package,
   Plus,
   Search,
   Trash2,
-  Wifi,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-// Mock data for subscription plans
+// Mock data for SaaS subscription plans
 const mockPlans = [
   {
     id: "1",
-    planName: "Basic 10 Mbps",
-    description: "Perfect for home users with light internet usage",
-    bandwidth: { download: "10", upload: "5", unit: "Mbps" },
-    pricing: { amount: "800", currency: "BDT", billingCycle: "monthly" },
+    planName: "Starter",
+    planType: "starter",
+    description: "Perfect for small ISPs getting started",
+    limits: {
+      maxPPPUsers: 500,
+      maxResellers: 2,
+      maxRouters: 3,
+    },
+    usage: {
+      currentPPPUsers: 245,
+      currentResellers: 1,
+      currentRouters: 2,
+    },
+    pricing: { amount: "29", currency: "USD", billingCycle: "monthly" },
     features: {
-      dataLimit: "100",
-      dataLimitUnit: "GB",
-      validityDays: "30",
-      simultaneousUsers: "1",
-      priority: "low",
+      apiAccess: false,
+      customBranding: false,
+      prioritySupport: false,
+      advancedAnalytics: false,
+      whiteLabel: false,
     },
     status: "active",
     createdAt: "2024-01-15",
@@ -55,71 +68,84 @@ const mockPlans = [
   },
   {
     id: "2",
-    planName: "Premium 50 Mbps",
-    description: "High-speed internet for power users and small businesses",
-    bandwidth: { download: "50", upload: "25", unit: "Mbps" },
-    pricing: { amount: "1500", currency: "BDT", billingCycle: "monthly" },
+    planName: "Professional",
+    planType: "professional",
+    description: "Ideal for growing ISP businesses",
+    limits: {
+      maxPPPUsers: 2000,
+      maxResellers: 10,
+      maxRouters: 10,
+    },
+    usage: {
+      currentPPPUsers: 1189,
+      currentResellers: 5,
+      currentRouters: 7,
+    },
+    pricing: { amount: "79", currency: "USD", billingCycle: "monthly" },
     features: {
-      dataLimit: "",
-      dataLimitUnit: "unlimited",
-      validityDays: "30",
-      simultaneousUsers: "3",
-      priority: "high",
+      apiAccess: true,
+      customBranding: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      whiteLabel: false,
     },
     status: "active",
     createdAt: "2024-02-10",
-    subscribers: 189,
+    subscribers: 1189,
   },
   {
     id: "3",
-    planName: "Enterprise 100 Mbps",
-    description: "Ultra-fast internet for large businesses and organizations",
-    bandwidth: { download: "100", upload: "50", unit: "Mbps" },
-    pricing: { amount: "3000", currency: "BDT", billingCycle: "monthly" },
+    planName: "Enterprise",
+    planType: "enterprise",
+    description: "For large-scale ISP operations",
+    limits: {
+      maxPPPUsers: -1, // unlimited
+      maxResellers: -1, // unlimited
+      maxRouters: -1, // unlimited
+    },
+    usage: {
+      currentPPPUsers: 5267,
+      currentResellers: 25,
+      currentRouters: 45,
+    },
+    pricing: { amount: "199", currency: "USD", billingCycle: "monthly" },
     features: {
-      dataLimit: "",
-      dataLimitUnit: "unlimited",
-      validityDays: "30",
-      simultaneousUsers: "10",
-      priority: "high",
+      apiAccess: true,
+      customBranding: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      whiteLabel: true,
     },
     status: "active",
     createdAt: "2024-03-05",
-    subscribers: 67,
+    subscribers: 5267,
   },
   {
     id: "4",
-    planName: "Student 5 Mbps",
-    description: "Affordable internet plan for students",
-    bandwidth: { download: "5", upload: "2", unit: "Mbps" },
-    pricing: { amount: "500", currency: "BDT", billingCycle: "monthly" },
+    planName: "Custom",
+    planType: "custom",
+    description: "Tailored solutions for enterprise needs",
+    limits: {
+      maxPPPUsers: 10000,
+      maxResellers: 50,
+      maxRouters: 100,
+    },
+    usage: {
+      currentPPPUsers: 0,
+      currentResellers: 0,
+      currentRouters: 0,
+    },
+    pricing: { amount: "0", currency: "USD", billingCycle: "monthly" },
     features: {
-      dataLimit: "50",
-      dataLimitUnit: "GB",
-      validityDays: "30",
-      simultaneousUsers: "1",
-      priority: "low",
+      apiAccess: true,
+      customBranding: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      whiteLabel: true,
     },
     status: "inactive",
     createdAt: "2024-01-20",
     subscribers: 0,
-  },
-  {
-    id: "5",
-    planName: "Gaming Pro 75 Mbps",
-    description: "Low latency, high-speed internet optimized for gaming",
-    bandwidth: { download: "75", upload: "35", unit: "Mbps" },
-    pricing: { amount: "2200", currency: "BDT", billingCycle: "monthly" },
-    features: {
-      dataLimit: "",
-      dataLimitUnit: "unlimited",
-      validityDays: "30",
-      simultaneousUsers: "5",
-      priority: "high",
-    },
-    status: "active",
-    createdAt: "2024-04-12",
-    subscribers: 134,
   },
 ];
 
@@ -134,7 +160,7 @@ export default function SubscriptionPlanListPage() {
       const matchesSearch =
         plan.planName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plan.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        plan.bandwidth.download.includes(searchTerm) ||
+        plan.planType.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plan.pricing.amount.includes(searchTerm);
 
       const matchesStatus =
@@ -199,8 +225,28 @@ export default function SubscriptionPlanListPage() {
     }
   };
 
-  const formatBandwidth = (plan: any) => {
-    return `${plan.bandwidth.download}/${plan.bandwidth.upload} ${plan.bandwidth.unit}`;
+  const formatLimits = (plan: any) => {
+    const formatLimit = (limit: number) =>
+      limit === -1 ? "Unlimited" : limit.toLocaleString();
+    return {
+      users: formatLimit(plan.limits.maxPPPUsers),
+      resellers: formatLimit(plan.limits.maxResellers),
+      routers: formatLimit(plan.limits.maxRouters),
+    };
+  };
+
+  const formatUsage = (plan: any) => {
+    return {
+      users: `${plan.usage.currentPPPUsers}/${
+        plan.limits.maxPPPUsers === -1 ? "∞" : plan.limits.maxPPPUsers
+      }`,
+      resellers: `${plan.usage.currentResellers}/${
+        plan.limits.maxResellers === -1 ? "∞" : plan.limits.maxResellers
+      }`,
+      routers: `${plan.usage.currentRouters}/${
+        plan.limits.maxRouters === -1 ? "∞" : plan.limits.maxRouters
+      }`,
+    };
   };
 
   const formatPrice = (plan: any) => {
@@ -213,15 +259,94 @@ export default function SubscriptionPlanListPage() {
     return `${symbol}${plan.pricing.amount}/${plan.pricing.billingCycle}`;
   };
 
-  const formatDataLimit = (plan: any) => {
-    if (plan.features.dataLimitUnit === "unlimited") {
-      return "Unlimited";
-    }
-    return `${plan.features.dataLimit} ${plan.features.dataLimitUnit}`;
+  const formatFeatures = (plan: any) => {
+    const activeFeatures = Object.entries(plan.features)
+      .filter(([_, value]) => value === true)
+      .map(([key, _]) => {
+        switch (key) {
+          case "apiAccess":
+            return "API Access";
+          case "customBranding":
+            return "Custom Branding";
+          case "prioritySupport":
+            return "Priority Support";
+          case "advancedAnalytics":
+            return "Advanced Analytics";
+          case "whiteLabel":
+            return "White Label";
+          default:
+            return key;
+        }
+      });
+    return activeFeatures.length > 0
+      ? activeFeatures.join(", ")
+      : "Basic Features";
   };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Plans
+                </p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active Plans
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.active}
+                </p>
+              </div>
+              <Zap className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Subscribers
+                </p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stats.totalSubscribers.toLocaleString()}
+                </p>
+              </div>
+              <Globe className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Inactive Plans
+                </p>
+                <p className="text-2xl font-bold text-red-600">
+                  {stats.inactive}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -281,61 +406,78 @@ export default function SubscriptionPlanListPage() {
           <div className="rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Plan Name</TableHead>
-                  <TableHead>Bandwidth</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Data Limit</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Subscribers</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="text-center">
+                  <TableHead className="text-center">Plan Details</TableHead>
+                  <TableHead className="text-center">Users</TableHead>
+                  <TableHead className="text-center">Resellers</TableHead>
+                  <TableHead className="text-center">Routers</TableHead>
+                  <TableHead className="text-center">Price</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPlans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       No subscription plans found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredPlans.map((plan) => (
                     <TableRow key={plan.id}>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div>
-                          <div className="font-medium">{plan.planName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {plan.description.length > 50
-                              ? `${plan.description.substring(0, 50)}...`
-                              : plan.description}
+                          <div className="font-medium text-base">
+                            {plan.planName}
+                          </div>
+                          <div className="text-sm text-muted-foreground capitalize">
+                            {plan.planType} Plan
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {plan.subscribers.toLocaleString()} active
+                            subscribers
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Wifi className="h-3 w-3 text-muted-foreground" />
-                          {formatBandwidth(plan)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatPrice(plan)}
-                      </TableCell>
-                      <TableCell>{formatDataLimit(plan)}</TableCell>
-                      <TableCell>
-                        {getPriorityBadge(plan.features.priority)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(plan.status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div className="text-center">
-                          <div className="font-medium">{plan.subscribers}</div>
+                          <div className="font-medium text-blue-600">
+                            {formatLimits(plan).users}
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            users
+                            {plan.usage.currentPPPUsers.toLocaleString()} used
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{plan.createdAt}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-center">
+                          <div className="font-medium text-green-600">
+                            {formatLimits(plan).resellers}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {plan.usage.currentResellers} used
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-center">
+                          <div className="font-medium text-purple-600">
+                            {formatLimits(plan).routers}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {plan.usage.currentRouters} used
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="font-medium text-lg">
+                          {formatPrice(plan)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getStatusBadge(plan.status)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
