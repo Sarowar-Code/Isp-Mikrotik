@@ -1,18 +1,17 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { Network, Play, Menu } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, Network, Play } from "lucide-react";
+import Link from "next/link";
 
 const scrollToSection = (sectionId: string) => {
-  const element = document.getElementById(sectionId)
+  const element = document.getElementById(sectionId);
   if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
+    element.scrollIntoView({ behavior: "smooth" });
   }
-}
+};
 
 export function HeroSection() {
   return (
@@ -24,43 +23,39 @@ export function HeroSection() {
             <Network className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold">CodersKite</span>
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-6">
-            <button 
-              onClick={() => scrollToSection('features')}
+            <button
+              onClick={() => scrollToSection("features")}
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Features
             </button>
-            <button 
-              onClick={() => scrollToSection('how-it-works')}
+            <button
+              onClick={() => scrollToSection("how-it-works")}
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               How It Works
             </button>
-            <button 
-              onClick={() => scrollToSection('pricing')}
+            <button
+              onClick={() => scrollToSection("pricing")}
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Pricing
             </button>
             <div className="w-px h-6 bg-border"></div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/superadmin/login">Super Admin</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
+
+            <Button variant="outline" size="sm" asChild>
               <Link href="/admin/login">Admin</Link>
             </Button>
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link href="/reseller/login">Reseller</Link>
             </Button>
-            <ThemeToggle />
           </div>
 
           {/* Mobile Navigation */}
           <div className="lg:hidden flex items-center space-x-2">
-            <ThemeToggle />
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -70,42 +65,48 @@ export function HeroSection() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-8">
-                  <div className="space-y-3">
+                  <div className="space-y-3 p-4">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Navigation
                     </h3>
-                    <button 
-                      onClick={() => scrollToSection('features')}
+                    <button
+                      onClick={() => scrollToSection("features")}
                       className="block text-left text-base font-medium hover:text-primary transition-colors"
                     >
                       Features
                     </button>
-                    <button 
-                      onClick={() => scrollToSection('how-it-works')}
+                    <button
+                      onClick={() => scrollToSection("how-it-works")}
                       className="block text-left text-base font-medium hover:text-primary transition-colors"
                     >
                       How It Works
                     </button>
-                    <button 
-                      onClick={() => scrollToSection('pricing')}
+                    <button
+                      onClick={() => scrollToSection("pricing")}
                       className="block text-left text-base font-medium hover:text-primary transition-colors"
                     >
                       Pricing
                     </button>
                   </div>
-                  
-                  <div className="border-t pt-4 space-y-3">
+
+                  <div className="border-t p-4 space-y-3">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Login
                     </h3>
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href="/superadmin/login">Super Admin Login</Link>
+
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      asChild
+                    >
+                      <Link href="/admin/login">Admin</Link>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href="/admin/login">Admin Login</Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href="/reseller/login">Reseller Login</Link>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      asChild
+                    >
+                      <Link href="/reseller/login">Reseller</Link>
                     </Button>
                   </div>
                 </div>
@@ -126,8 +127,9 @@ export function HeroSection() {
                 <span className="text-primary">CodersKite</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl">
-                Complete ISP management platform with MikroTik RouterOS integration. 
-                Manage users, bandwidth, billing, and routers from one powerful dashboard.
+                Complete ISP management platform with MikroTik RouterOS
+                integration. Manage users, bandwidth, billing, and routers from
+                one powerful dashboard.
               </p>
             </div>
 
@@ -135,7 +137,11 @@ export function HeroSection() {
               <Button size="lg" className="text-lg px-8 py-6">
                 Start Free Trial
               </Button>
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+              <Button
+                size="lg"
+                variant="secondary"
+                className="text-lg px-8 py-6"
+              >
                 <Play className="mr-2 h-5 w-5" />
                 Watch Demo
               </Button>
@@ -158,34 +164,52 @@ export function HeroSection() {
             <Card className="p-8 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-muted-foreground">ISP Dashboard</div>
+                  <div className="text-sm font-medium text-muted-foreground">
+                    ISP Dashboard
+                  </div>
                   <div className="flex space-x-1">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-background/80 p-4 rounded-lg border">
-                      <div className="text-2xl font-bold text-primary">2,847</div>
-                      <div className="text-xs text-muted-foreground">Active Users</div>
+                      <div className="text-2xl font-bold text-primary">
+                        2,847
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Active Users
+                      </div>
                     </div>
                     <div className="bg-background/80 p-4 rounded-lg border">
-                      <div className="text-2xl font-bold text-secondary">12</div>
-                      <div className="text-xs text-muted-foreground">Routers</div>
+                      <div className="text-2xl font-bold text-secondary">
+                        12
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Routers
+                      </div>
                     </div>
                     <div className="bg-background/80 p-4 rounded-lg border">
-                      <div className="text-2xl font-bold text-orange-500">98.5%</div>
-                      <div className="text-xs text-muted-foreground">Uptime</div>
+                      <div className="text-2xl font-bold text-orange-500">
+                        98.5%
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Uptime
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-background/80 p-4 rounded-lg border">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Network Status</span>
-                      <span className="text-xs text-green-600">All Systems Operational</span>
+                      <span className="text-sm font-medium">
+                        Network Status
+                      </span>
+                      <span className="text-xs text-green-600">
+                        All Systems Operational
+                      </span>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -209,5 +233,5 @@ export function HeroSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

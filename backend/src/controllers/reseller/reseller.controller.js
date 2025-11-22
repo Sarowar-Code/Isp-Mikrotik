@@ -7,7 +7,6 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 
 const registerReseller = asyncHandler(async (req, res) => {
-  console.log("REQBODY :", req.body);
 
   const {
     fullName,
@@ -134,5 +133,5 @@ export {
   deleteResellerById,
   getAllResellers,
   getResellerById,
-  registerReseller,
+  registerReseller
 };

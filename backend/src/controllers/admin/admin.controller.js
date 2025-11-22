@@ -1,4 +1,8 @@
+import mongoose from "mongoose";
 import { Admin } from "../../models/admin.model.js";
+import { PppClient } from "../../models/pppClient.model.js";
+import { Reseller } from "../../models/reseller.model.js";
+import { Router } from "../../models/router.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -13,7 +17,7 @@ const registerAdmin = asyncHandler(async (req, res) => {
     contact,
     whatsapp,
     nid,
-    address, // Mongoose will handle the validation of this object
+    address,
   } = req.body;
 
   if (
@@ -78,6 +82,67 @@ const getAllAdmins = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, admins, "All admins fetched successfully"));
 });
 
+const getAdminsWithStats = asyncHandler(async (req, res) => {
+  // Fetch all admins
+  const admins = await Admin.find().select("-password -refreshToken");
+
+  if (!admins || admins.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "No admins found"));
+  }
+
+  // Aggregate stats for each admin
+  const adminsWithStats = await Promise.all(
+    admins.map(async (admin) => {
+      const adminId = admin._id;
+
+      // Count resellers assigned to this admin
+      const resellerCount = await Reseller.countDocuments({
+        adminId,
+      });
+
+      // Count routers owned by this admin
+      const routerCount = await Router.countDocuments({
+        owner: adminId,
+      });
+
+      // Count PPP clients whose admin is this admin (via reseller -> admin linkage)
+      // PPP clients are created by resellers, so we need to count clients of resellers under this admin
+      const resellerIds = await Reseller.find({ adminId }).select("_id");
+      const resellerIdArray = resellerIds.map((r) => r._id);
+
+      const pppClientCount = await PppClient.countDocuments({
+        createdBy: { $in: resellerIdArray },
+      });
+
+      return {
+        _id: admin._id,
+        fullName: admin.fullName,
+        username: admin.username,
+        email: admin.email,
+        contact: admin.contact,
+        whatsapp: admin.whatsapp,
+        nid: admin.nid,
+        address: admin.address,
+        avatar: admin.avatar,
+        isActive: admin.isActive,
+        createdAt: admin.createdAt,
+        updatedAt: admin.updatedAt,
+        stats: {
+          totalResellers: resellerCount,
+          totalRouters: routerCount,
+          totalPppClients: pppClientCount,
+        },
+      };
+    })
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, adminsWithStats, "Admins with stats fetched successfully"));
+});
+
 const getAdminById = asyncHandler(async (req, res) => {
   const { id } = req.query;
 
@@ -118,4 +183,4 @@ const deleteAdminById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin deleted successfully"));
 });
 
-export { deleteAdminById, getAdminById, getAllAdmins, registerAdmin };
+export { deleteAdminById, getAdminById, getAdminsWithStats, getAllAdmins, registerAdmin };

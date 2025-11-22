@@ -1,0 +1,17 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.3/schema.json",
+  "files": { "include": ["src/**/*.{js,jsx,ts,tsx}", "*.{js,ts,json,md}"] },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "organizeImports": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "no-unused-vars": "warn"
+    }
+  }
+}

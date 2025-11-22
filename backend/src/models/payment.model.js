@@ -1,71 +1,100 @@
-import models, { Schema, model } from "mongoose";
+import models, { model, Schema } from "mongoose";
 
 const paymentSchema = new Schema(
   {
+    // Who paid
     payerId: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: "payerModel",
+      refPath: "payerModel",
     },
     payerModel: {
       type: String,
-      required: true,
       enum: ["Admin", "Reseller"],
+      required: true,
     },
+
+    // Who received
+    receiverId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      refPath: "receiverModel",
+    },
+    receiverModel: {
+      type: String,
+      enum: ["Admin", "SuperAdmin"],
+      required: true,
+    },
+
+    // Plan references
     subscriptionId: {
       type: Schema.Types.ObjectId,
       ref: "Subscription",
       required: function () {
-        return this.payerModel === "Admin"; // Editable
+        return this.payerModel === "Admin";
       },
     },
+    packages: [
+      {
+        packageId: {
+          type: Schema.Types.ObjectId,
+          ref: "Package",
+          required: true,
+        },
+        name: {
+          type: String,
+          required: true,
+        },
+        price: {
+          type: Number,
+          required: true,
+        },
+        userCount: {
+          type: Number,
+          default: 0,
+        },
+        subtotal: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
+    // Payment info
     amount: {
       type: Number,
       required: true,
     },
-    status: {
-      type: String,
-      enum: ["paid", "pending", "due"],
-      default: "pending",
-    },
-    transactionId: {
-      type: String,
-      default: null,
-    },
     paymentMethod: {
       type: String,
-      enum: ["bkash", "manual"],
-      default: "bkash",
+      enum: ["bkash", "nagad", "manual"],
+      default: "manual",
     },
-    paidAt: {
-      type: Date,
+    paymentMethodRef: {
+      type: String,
+      trim: true,
+      index: true, // for trxId or agentRef search
     },
-    nextDueDate: {
-      type: Date,
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "rejected", "due"],
+      default: "pending",
     },
     notes: {
       type: String,
       trim: true,
     },
+    // Who confirmed it
+    confirmedBy: {
+      type: Schema.Types.ObjectId,
+      refPath: "receiverModel",
+    },
   },
   { timestamps: true }
 );
 
-paymentSchema.pre("save", async function (next) {
-  if (this.isModified("paidAt") && this.subscriptionId) {
-    const Subscription = (await import("./subscription.model.js")).Subscription;
-    const sub = await Subscription.findById(this.subscriptionId);
-
-    if (sub) {
-      const nextDue = new Date(this.paidAt);
-      if (sub.billingCycle === "monthly")
-        nextDue.setMonth(nextDue.getMonth() + 1);
-      if (sub.billingCycle === "yearly")
-        nextDue.setFullYear(nextDue.getFullYear() + 1);
-      this.nextDueDate = nextDue;
-    }
-  }
-  next();
-});
+// Indexing for faster queries
+paymentSchema.index({ payerId: 1 }); // for admin search
+paymentSchema.index({ receiverId: 1 }); // for superadmin search
+paymentSchema.index({ status: 1 }); // for status search
 
 export const Payment = models.Payment || model("Payment", paymentSchema);

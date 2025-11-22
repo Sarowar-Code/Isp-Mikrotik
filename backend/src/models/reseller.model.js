@@ -73,7 +73,7 @@ const resellerSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
+      enum: ["Active", "Inactive", "Suspended"],
       default: "Active",
     },
     paymentInfo: {
@@ -96,6 +96,7 @@ const resellerSchema = new Schema(
   },
   { timestamps: true }
 );
+
 
 resellerSchema.plugin(mongooseAggregatePaginate);
 

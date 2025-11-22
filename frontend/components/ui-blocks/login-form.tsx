@@ -37,14 +37,10 @@ export function LoginForm({ role }: { role: Role }) {
     setLoading(true);
     try {
       const res = await loginUser(role, data);
-
-      // Check if login was successful
       if (res.success) {
         console.log("Login successful:", res);
-        // Redirect to dashboard on successful login
         router.push(`/${role}/dashboard`);
       } else {
-        // Handle unsuccessful login based on backend response
         form.setError("root", {
           message: res.message || "Login failed. Please try again.",
         });
@@ -52,9 +48,7 @@ export function LoginForm({ role }: { role: Role }) {
     } catch (err: unknown) {
       console.error("Login error:", err);
 
-      // Handle different types of errors
       if (err.message) {
-        // Check for specific error messages from backend
         if (
           err.message.includes("User not found") ||
           err.message.includes("404")

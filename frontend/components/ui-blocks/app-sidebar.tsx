@@ -12,7 +12,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { getCurrentAuth } from "@/lib/api/auth";
-import { User } from "lucide-react";
+import { Network } from "lucide-react";
 import * as React from "react";
 
 type Role = "superadmin" | "admin" | "reseller";
@@ -41,8 +41,7 @@ export function AppSidebar({
   const teams = [
     {
       name: "ISP Management",
-      logo: User,
-      plan: role.toUpperCase(),
+      logo: Network,
     },
   ];
 

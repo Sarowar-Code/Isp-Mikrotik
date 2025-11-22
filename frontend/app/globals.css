@@ -121,3 +121,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix browser autofill white background in dark mode */
+@layer utilities {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    border-radius: 0.425rem;
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--input)) inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px oklch(0.279 0.041 260.031 / 0.3) inset !important;
+    -webkit-text-fill-color: oklch(0.984 0.003 247.858) !important;
+  }
+}

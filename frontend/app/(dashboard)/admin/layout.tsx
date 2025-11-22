@@ -22,10 +22,8 @@ interface Props {
 export default function AdminLayout({ children }: Props) {
   return (
     <SidebarProvider>
-      {/* 👇 pass the role to AppSidebar */}
       <AppSidebar role={"admin"} />
       <SidebarInset>
-        {/* Header */}
         <header className="flex h-16 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator

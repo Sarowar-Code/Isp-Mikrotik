@@ -46,6 +46,12 @@ const adminSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive", "Suspended"],
+      default: "Active",
     },
     address: {
       thana: {
@@ -75,13 +81,15 @@ const adminSchema = new Schema(
       },
       lastPaymentDate: {
         type: Date,
+        default: null,
       },
       nextPaymentDue: {
         type: Date,
+        default: null,
       },
       paymentStatus: {
         type: String,
-        enum: ["Paid", "Pending", "Overdue"],
+        enum: ["Paid", "Pending", "Due"],
         default: "Pending",
       },
     },

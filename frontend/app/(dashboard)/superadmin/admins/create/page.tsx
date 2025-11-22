@@ -23,17 +23,28 @@ import {
   registerAdmin,
 } from "@/lib/api/superadmin/superadmin.axios";
 import {
+  Bell,
   Eye,
   EyeOff,
   Mail,
   MapPin,
   Phone,
+  TrendingUp,
   Upload,
   User,
   UserPlus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
 // Bangladesh divisions and districts data
 const bangladeshData = {
@@ -108,6 +119,70 @@ const bangladeshData = {
   ],
   Mymensingh: ["Jamalpur", "Mymensingh", "Netrakona", "Sherpur"],
 };
+
+// Chart data for admin registrations
+const chartData = [
+  { month: "January", admins: 12 },
+  { month: "February", admins: 18 },
+  { month: "March", admins: 15 },
+  { month: "April", admins: 22 },
+  { month: "May", admins: 28 },
+  { month: "June", admins: 25 },
+];
+
+const chartConfig = {
+  admins: {
+    label: "Admins",
+    color: "hsl(var(--chart-1))",
+  },
+};
+
+// Notice board data
+interface Notice {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  priority: "high" | "medium" | "low";
+}
+
+const notices: Notice[] = [
+  {
+    id: 1,
+    title: "System Maintenance Scheduled",
+    description: "Server maintenance will be performed on Sunday, 2:00 AM - 4:00 AM. Services may be temporarily unavailable.",
+    date: "2025-10-28",
+    priority: "high",
+  },
+  {
+    id: 2,
+    title: "New Feature: Bulk Admin Import",
+    description: "You can now import multiple admins at once using CSV files. Check the documentation for the required format.",
+    date: "2025-10-26",
+    priority: "medium",
+  },
+  {
+    id: 3,
+    title: "Security Update Released",
+    description: "A new security patch has been applied to enhance system protection. All admins are advised to update their passwords.",
+    date: "2025-10-25",
+    priority: "high",
+  },
+  {
+    id: 4,
+    title: "Training Session: Admin Panel Features",
+    description: "Join our upcoming training session to learn about new admin panel features. Registration link will be shared soon.",
+    date: "2025-10-24",
+    priority: "low",
+  },
+  {
+    id: 5,
+    title: "Monthly Performance Report Available",
+    description: "The September performance report is now available in the reports section. Review your team's metrics and insights.",
+    date: "2025-10-20",
+    priority: "medium",
+  },
+].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 export default function RegisterAdminPage() {
   const router = useRouter();
@@ -480,6 +555,105 @@ export default function RegisterAdminPage() {
           </CardContent>
         </Card>
       </form>
+
+      {/* Admin Registration Statistics Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Admin Registration Statistics
+          </CardTitle>
+          <CardDescription>
+            Monthly admin registration trends for the last 6 months
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[300px]">
+            <BarChart accessibilityLayer data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <YAxis tickLine={false} axisLine={false} />
+              <ChartTooltip
+                cursor={{ fill: "rgba(0, 0, 0, 0.1)" }}
+                content={<ChartTooltipContent />}
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar
+                dataKey="admins"
+                fill="var(--color-admins)"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Notice Board */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notice Board
+          </CardTitle>
+          <CardDescription>
+            Important announcements and updates for administrators
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {notices.map((notice) => (
+              <div
+                key={notice.id}
+                className="border-l-4 pl-4 py-3 rounded-r-lg transition-colors hover:bg-muted/50"
+                style={{
+                  borderLeftColor:
+                    notice.priority === "high"
+                      ? "hsl(var(--destructive))"
+                      : notice.priority === "medium"
+                        ? "hsl(var(--chart-2))"
+                        : "hsl(var(--muted-foreground))",
+                }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-sm">{notice.title}</h4>
+                      <Badge
+                        variant={
+                          notice.priority === "high"
+                            ? "destructive"
+                            : notice.priority === "medium"
+                              ? "default"
+                              : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {notice.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {notice.description}
+                    </p>
+                  </div>
+                  <time className="text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(notice.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </time>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

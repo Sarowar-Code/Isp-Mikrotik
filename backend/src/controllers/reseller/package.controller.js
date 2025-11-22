@@ -6,7 +6,6 @@ import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 
-// get All profile from router then, create package by syncing
 const createPackage = asyncHandler(async (req, res) => {
   const { routerId } = req.query;
   const {
