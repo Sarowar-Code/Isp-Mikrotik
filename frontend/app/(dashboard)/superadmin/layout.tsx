@@ -1,12 +1,5 @@
 import { AppSidebar } from "@/components/ui-blocks/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Breadcrumbs } from "@/components/ui-blocks/breadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -19,6 +12,8 @@ interface Props {
   children: ReactNode;
 }
 
+
+
 export default function SuperAdminLayout({ children }: Props) {
   return (
     <SidebarProvider>
@@ -30,19 +25,7 @@ export default function SuperAdminLayout({ children }: Props) {
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href={"/superadmin/dashboard"}>
-                  Superadmin
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <Breadcrumbs />
         </header>
         <Separator />
         {children}
