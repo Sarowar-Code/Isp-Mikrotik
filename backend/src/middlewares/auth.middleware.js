@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken";
-import { Admin } from "../models/admin.model.js";
-import { Reseller } from "../models/reseller.model.js";
-import { SuperAdmin } from "../models/superAdmin.model.js";
+import { prisma } from "../lib/prisma.ts";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
@@ -15,39 +13,69 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
       throw new ApiError(401, "Unauthorized request");
     }
 
-    // decode without knowing secret first
+    // Decode token without secret first
     const decoded = jwt.decode(token);
-    if (!decoded?.role) throw new ApiError(401, "Invalid Token - no role");
+    if (!decoded?.role) throw new ApiError(401, "Invalid token - no role");
 
-    let secret, Model;
+    console.log("Decoded JWT:", decoded
 
-    switch (decoded.role) {
+
+    );
+
+    let secret, user;
+
+    const authRole = decoded.role.toLowerCase()
+
+    switch (authRole) {
       case "superadmin":
         secret = process.env.SUPERADMIN_ACCESS_TOKEN_SECRET;
-        Model = SuperAdmin;
+        user = await prisma.superAdmin.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        });
         break;
+
       case "admin":
         secret = process.env.ADMIN_ACCESS_TOKEN_SECRET;
-        Model = Admin;
+        user = await prisma.admin.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        });
         break;
+
       case "reseller":
         secret = process.env.RESELLER_ACCESS_TOKEN_SECRET;
-        Model = Reseller;
+        user = await prisma.reseller.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        });
         break;
 
       default:
         throw new ApiError(401, "Invalid role");
     }
 
-    // verify properly with correct secret
-    const verified = jwt.verify(token, secret);
+    if (!user) throw new ApiError(401, "Auth user not found");
 
-    const authUser = await Model.findById(verified._id).select(
-      "-password -refreshToken"
-    );
-    if (!authUser) throw new ApiError(401, "AuthUser not found");
+    // Verify token properly with correct secret
+    jwt.verify(token, secret);
 
-    req.auth = authUser;
+    req.auth = user;
     req.authRole = decoded.role;
 
     next();

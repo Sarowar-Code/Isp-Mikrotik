@@ -1,24 +1,28 @@
-export const generateAccessAndRefreshTokens = async (model, id) => {
-  try {
-    const user = await model.findById(id);
+import { prisma } from "../lib/prisma.ts";
+import { ApiError } from "./ApiError.js";
+import { generateAccessToken, generateRefreshToken } from "./auth.js";
 
-    if (!user) {
-      throw new ApiError(404, `${model.modelName} not found`);
-    }
+// Mapping roles → prisma models
+const roleModel = {
+  superadmin: prisma.superAdmin,
+  admin: prisma.admin,
+  reseller: prisma.reseller,
+};
 
-    // Instance methods (defined in schema.methods)
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+export const generateAccessAndRefreshTokens = async (user) => {
+  if (!user?.role) throw new ApiError(500, "User role missing");
 
-    // Save refresh token in DB for this admin
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+  const model = roleModel[user.role.toLowerCase()];
+  if (!model) throw new ApiError(500, "Invalid role");
 
-    return { accessToken, refreshToken };
-  } catch (error) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating access and refresh token"
-    );
-  }
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  // Save refreshToken in its own model table
+  await model.update({
+    where: { id: user.id },
+    data: { refreshToken },
+  });
+
+  return { accessToken, refreshToken };
 };

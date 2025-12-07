@@ -1,77 +1,80 @@
 import jwt from "jsonwebtoken";
-import { SuperAdmin } from "../../models/superAdmin.model.js";
+import { prisma } from "../../lib/prisma.ts";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import { comparePassword, hashPassword } from "../../utils/auth.js";
 import { cookieOptions } from "../../utils/cookieOptions.js";
 import { generateAccessAndRefreshTokens } from "../../utils/generateTokens.js";
 
 const registerSuperAdmin = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
 
-  if ([fullName, email, password].some((field) => !field.trim() === "")) {
+  if ([fullName, email, password].some((field) => !field?.trim())) {
     throw new ApiError(400, "All fields are required");
   }
 
-  // ✅ ensure only one SuperAdmin exists
-  const existingSuperAdmin = await SuperAdmin.findOne();
-  if (existingSuperAdmin) {
+  // allow only one SuperAdmin
+  const existing = await prisma.superAdmin.findFirst();
+  if (existing) {
     throw new ApiError(409, "SuperAdmin already exists");
   }
 
-  const superAdmin = await SuperAdmin.create({
-    fullName,
-    email,
-    password,
+  const hashedPassword = await hashPassword(password);
+
+  const newAdmin = await prisma.superAdmin.create({
+    data: { fullName, email, password: hashedPassword },
   });
 
-  const createdSuperAdmin = await SuperAdmin.findById(superAdmin._id).select(
-    "-password"
-  );
-
-  if (!createdSuperAdmin) {
-    throw new ApiError(500, "SuperAdmin creation failed");
-  }
+  const created = await prisma.superAdmin.findUnique({
+    where: { id: newAdmin.id },
+    select: { id: true, fullName: true, email: true, role: true },
+  });
 
   return res
     .status(201)
-    .json(
-      new ApiResponse(201, createdSuperAdmin, "SuperAdmin created successfully")
-    );
+    .json(new ApiResponse(201, created, "SuperAdmin created successfully"));
 });
 
 const loginSuperAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email && !password) {
-    throw new ApiError(400, "All fields are required");
+  // 1. Validate input
+  if (!email || !password) {
+    throw new ApiError(400, "Email and password are required");
   }
 
-  const superAdmin = await SuperAdmin.findOne();
+  // 2. Find admin by email
+  const superAdmin = await prisma.superAdmin.findUnique({
+    where: { email },
+  });
 
   if (!superAdmin) {
     throw new ApiError(404, "SuperAdmin does not exist");
   }
 
-  const isPasswordValid = await superAdmin.comparePassword(password);
+  // 3. Password check
+  const isPasswordValid = await comparePassword(password, superAdmin.password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid superAdmin Credentials");
+    throw new ApiError(401, "Invalid credentials");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    SuperAdmin,
-    superAdmin._id
-  );
+  // 4. Generate tokens
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(superAdmin);
 
-  const loggedInSuperAdmin = await SuperAdmin.findById(superAdmin._id).select(
-    "-password -refreshToken"
-  );
+  // 5. Save refreshToken in DB
+  await prisma.superAdmin.update({
+    where: { id: superAdmin.id },
+    data: { refreshToken },
+  });
 
-  const options = {
-    // cookies options
-    httpOnly: true,
-    secure: true,
+  // 6. Prepare safe response object
+  const adminForResponse = {
+    id: superAdmin.id,
+    fullName: superAdmin.fullName,
+    email: superAdmin.email,
+    role: superAdmin.role,
   };
 
   return res
@@ -81,38 +84,33 @@ const loginSuperAdmin = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { superAdmin: loggedInSuperAdmin, accessToken, refreshToken },
-        "User logged in successfully"
+        { superAdmin: adminForResponse, accessToken, refreshToken },
+        "Admin logged in successfully"
       )
     );
 });
 
 const logoutSuperAdmin = asyncHandler(async (req, res) => {
-  // clear cookies
-  // clear tokens
+  const superAdminId = req.auth?.id; // or req.user?.id depending on your auth middleware
 
-  await SuperAdmin.findByIdAndUpdate(
-    req.auth._id,
-    {
-      $set: {
-        refreshToken: 1,
-      },
-    },
-    { new: true }
-  );
+  if (!superAdminId) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  // Remove refresh token
+  await prisma.superAdmin.update({
+    where: { id: superAdminId },
+    data: { refreshToken: null },
+  });
 
   return res
     .status(200)
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions)
-    .json(new ApiResponse(200, {}, "User Logged Out"));
+    .json(new ApiResponse(200, {}, "User Logged Out Successfully"));
 });
 
 const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
-  // ** Get Current User Controller **/
-  // return current user details from req.user **/
-  // return response **
-
   return res
     .status(200)
     .json(
@@ -125,8 +123,6 @@ const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  console.log(req.cookies);
-
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken;
 
@@ -134,29 +130,32 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized request");
   }
 
-  console.log("incomingRefreshToken", incomingRefreshToken); // coming correctly
-
   try {
-    const decodedToken = jwt.verify(
+    // Verify refresh token
+    const decoded = jwt.verify(
       incomingRefreshToken,
       process.env.SUPERADMIN_REFRESH_TOKEN_SECRET
     );
 
-    const superAdmin = await SuperAdmin.findById(decodedToken._id);
+    // Find user by decoded.id
+    const superAdmin = await prisma.superAdmin.findUnique({
+      where: { id: decoded.id },
+    });
 
     if (!superAdmin) {
-      throw new ApiError(401, "Invalid refresh token - superAdmin not found");
+      throw new ApiError(401, "Invalid refresh token - user not found");
     }
 
+    // Check if incoming refresh matches DB
     if (superAdmin.refreshToken !== incomingRefreshToken) {
-      throw new ApiError(401, "Refresh token expired or used");
+      throw new ApiError(401, "Refresh token expired or already used");
     }
 
+    // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(SuperAdmin, superAdmin._id);
+      await generateAccessAndRefreshTokens(superAdmin);
 
-    console.log("newRefreshToken", newRefreshToken); // showing undefined
-
+    // Send new tokens
     return res
       .status(200)
       .cookie("accessToken", accessToken, cookieOptions)
@@ -164,12 +163,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { accessToken, refreshToken: newRefreshToken }, // returning accesstoken only,
+          { accessToken, refreshToken: newRefreshToken },
           "Access token refreshed successfully"
         )
       );
   } catch (error) {
-    throw new ApiError(401, "Invalid refresh token");
+    console.error(error);
+    throw new ApiError(401, "Invalid or expired refresh token");
   }
 });
 
@@ -178,5 +178,5 @@ export {
   loginSuperAdmin,
   logoutSuperAdmin,
   refreshAccessToken,
-  registerSuperAdmin,
+  registerSuperAdmin
 };
