@@ -17,11 +17,6 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     const decoded = jwt.decode(token);
     if (!decoded?.role) throw new ApiError(401, "Invalid token - no role");
 
-    console.log("Decoded JWT:", decoded
-
-
-    );
-
     let secret, user;
 
     const authRole = decoded.role.toLowerCase()

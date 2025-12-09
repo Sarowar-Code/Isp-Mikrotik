@@ -1,11 +1,8 @@
-import mongoose from "mongoose";
-import { Admin } from "../../models/admin.model.js";
-import { PppClient } from "../../models/pppClient.model.js";
-import { Reseller } from "../../models/reseller.model.js";
-import { Router } from "../../models/router.model.js";
+import { prisma } from "../../lib/prisma.ts";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import { hashPassword } from "../../utils/auth.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 
 const registerAdmin = asyncHandler(async (req, res) => {
@@ -17,144 +14,190 @@ const registerAdmin = asyncHandler(async (req, res) => {
     contact,
     whatsapp,
     nid,
-    address,
+    address
   } = req.body;
 
-  if (
-    !fullName ||
-    !username ||
-    !email ||
-    !password ||
-    !contact ||
-    !whatsapp ||
-    !nid
-  ) {
+  // basic validation
+  if (!fullName || !username || !email || !password ||
+      !contact || !whatsapp || !nid)
     throw new ApiError(400, "All fields are required");
-  }
 
-  // Check if admin with this email or username already exists
-  const existingAdmin = await Admin.findOne({
-    $or: [{ email }, { username }],
+  // check if email or username exists
+  const existing = await prisma.admin.findFirst({
+    where: {
+      OR: [{ email }, { username }]
+    }
   });
-  if (existingAdmin) {
+
+  if (existing)
     throw new ApiError(409, "Admin with this email or username already exists");
-  }
 
-  // Handle avatar upload
+  // avatar upload
   const avatarPath = req.file?.path;
-
   const avatar = avatarPath ? await uploadOnCloudinary(avatarPath) : null;
 
-  // Create admin with the validated data
-  const admin = await Admin.create({
-    fullName,
-    username: username.toLowerCase(),
-    email,
-    password, // Hashed in pre-save hook
-    avatar: avatar?.url || "",
-    contact,
-    whatsapp,
-    nid,
-    address: typeof address === "string" ? JSON.parse(address) : address, // The entire address object is passed here
+  // hash password
+  const hashedPassword = await hashPassword(password)
+
+  // Parse address if string
+  const parsedAddress =
+    typeof address === "string" ? JSON.parse(address) : address;
+
+  // Create Admin
+  const admin = await prisma.admin.create({
+    data: {
+      fullName,
+      username: username.toLowerCase(),
+      email,
+      password: hashedPassword,
+      avatar: avatar?.url || "",
+      contact,
+      whatsapp,
+      nid,
+
+      // create related address (one-to-one)
+      address: {
+        create: {
+          thana: parsedAddress.thana,
+          district: parsedAddress.district,
+          division: parsedAddress.division
+        }
+      },
+
+      // create paymentInfo with defaults
+      paymentInfo: {
+        create: {}
+      }
+    },
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+      email: true,
+      avatar: true,
+      contact: true,
+      whatsapp: true,
+      nid: true,
+      status: true,
+      role: true,
+      address: true,
+      paymentInfo: true,
+      createdAt: true
+    }
   });
-
-  if (!admin) {
-    // If creation fails for any reason (e.g., Mongoose validation), this will catch it
-    throw new ApiError(400, "Failed to create admin");
-  }
-
-  const createdAdmin = await Admin.findById(admin._id).select(
-    "-password -refreshToken"
-  );
-  if (!createdAdmin) {
-    throw new ApiError(500, "Admin Creation Failed");
-  }
 
   return res
     .status(201)
-    .json(new ApiResponse(200, createdAdmin, "Admin created successfully"));
+    .json(
+      new ApiResponse(201, admin, "Admin created successfully")
+    );
 });
 
 const getAllAdmins = asyncHandler(async (req, res) => {
-  const admins = await Admin.find().select("-password -refreshToken");
+  const admins = await prisma.admin.findMany({
+    select: {
+      id:true,
+      fullName:true,
+      username:true,
+      email:true,
+      contact:true,
+      whatsapp:true,
+      nid:true,
+      address:true,
+      paymentInfo:true,
+      status:true,
+    }
+  })
   return res
     .status(200)
     .json(new ApiResponse(200, admins, "All admins fetched successfully"));
 });
 
-const getAdminsWithStats = asyncHandler(async (req, res) => {
-  // Fetch all admins
-  const admins = await Admin.find().select("-password -refreshToken");
+// const getAdminsWithStats = asyncHandler(async (req, res) => {
+//   // Fetch all admins
+//   const admins = await Admin.find().select("-password -refreshToken");
 
-  if (!admins || admins.length === 0) {
-    return res
-      .status(200)
-      .json(new ApiResponse(200, [], "No admins found"));
-  }
+//   if (!admins || admins.length === 0) {
+//     return res
+//       .status(200)
+//       .json(new ApiResponse(200, [], "No admins found"));
+//   }
 
-  // Aggregate stats for each admin
-  const adminsWithStats = await Promise.all(
-    admins.map(async (admin) => {
-      const adminId = admin._id;
+//   // Aggregate stats for each admin
+//   const adminsWithStats = await Promise.all(
+//     admins.map(async (admin) => {
+//       const adminId = admin._id;
 
-      // Count resellers assigned to this admin
-      const resellerCount = await Reseller.countDocuments({
-        adminId,
-      });
+//       // Count resellers assigned to this admin
+//       const resellerCount = await Reseller.countDocuments({
+//         adminId,
+//       });
 
-      // Count routers owned by this admin
-      const routerCount = await Router.countDocuments({
-        owner: adminId,
-      });
+//       // Count routers owned by this admin
+//       const routerCount = await Router.countDocuments({
+//         owner: adminId,
+//       });
 
-      // Count PPP clients whose admin is this admin (via reseller -> admin linkage)
-      // PPP clients are created by resellers, so we need to count clients of resellers under this admin
-      const resellerIds = await Reseller.find({ adminId }).select("_id");
-      const resellerIdArray = resellerIds.map((r) => r._id);
+//       // Count PPP clients whose admin is this admin (via reseller -> admin linkage)
+//       // PPP clients are created by resellers, so we need to count clients of resellers under this admin
+//       const resellerIds = await Reseller.find({ adminId }).select("_id");
+//       const resellerIdArray = resellerIds.map((r) => r._id);
 
-      const pppClientCount = await PppClient.countDocuments({
-        createdBy: { $in: resellerIdArray },
-      });
+//       const pppClientCount = await PppClient.countDocuments({
+//         createdBy: { $in: resellerIdArray },
+//       });
 
-      return {
-        _id: admin._id,
-        fullName: admin.fullName,
-        username: admin.username,
-        email: admin.email,
-        contact: admin.contact,
-        whatsapp: admin.whatsapp,
-        nid: admin.nid,
-        address: admin.address,
-        avatar: admin.avatar,
-        isActive: admin.isActive,
-        createdAt: admin.createdAt,
-        updatedAt: admin.updatedAt,
-        stats: {
-          totalResellers: resellerCount,
-          totalRouters: routerCount,
-          totalPppClients: pppClientCount,
-        },
-      };
-    })
-  );
+//       return {
+//         _id: admin._id,
+//         fullName: admin.fullName,
+//         username: admin.username,
+//         email: admin.email,
+//         contact: admin.contact,
+//         whatsapp: admin.whatsapp,
+//         nid: admin.nid,
+//         address: admin.address,
+//         avatar: admin.avatar,
+//         isActive: admin.isActive,
+//         createdAt: admin.createdAt,
+//         updatedAt: admin.updatedAt,
+//         stats: {
+//           totalResellers: resellerCount,
+//           totalRouters: routerCount,
+//           totalPppClients: pppClientCount,
+//         },
+//       };
+//     })
+//   );
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, adminsWithStats, "Admins with stats fetched successfully"));
-});
+//   return res
+//     .status(200)
+//     .json(new ApiResponse(200, adminsWithStats, "Admins with stats fetched successfully"));
+// });
 
 const getAdminById = asyncHandler(async (req, res) => {
   const { id } = req.query;
 
   // Validate MongoDB ObjectId
-  if (!mongoose.Types.ObjectId.isValid(id?.trim())) {
-    throw new ApiError(400, "Invalid Admin ID format");
+   if (!id || typeof id !== "string") {
+    throw new ApiError(400, "Invalid ID");
   }
 
   // Find admin and exclude sensitive fields
-  const admin = await Admin.findById(id.trim()).select(
-    "-password -refreshToken"
-  );
+  const admin = await prisma.admin.findUnique({
+    where: { id },
+    select: {
+      id:true,
+      fullName:true,
+      username:true,
+      email:true,
+      contact:true,
+      whatsapp:true,
+      nid:true,
+      address:true,
+      paymentInfo:true,
+      status:true,
+    }
+  })
 
   if (!admin) {
     throw new ApiError(404, "Admin not found with the provided ID");
@@ -168,19 +211,28 @@ const getAdminById = asyncHandler(async (req, res) => {
 const deleteAdminById = asyncHandler(async (req, res) => {
   const { id } = req.query;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new ApiError(400, "Invalid Admin ID");
+  if (!id || typeof id !== "string") {
+    throw new ApiError(400, "Invalid ID");
   }
 
-  const admin = await Admin.findByIdAndDelete(id);
+  // Check if admin exists
+  const admin = await prisma.admin.findUnique({ where: { id } });
+  if (!admin) throw new ApiError(404, "Admin not found");
 
-  if (!admin) {
-    throw new ApiError(404, "Admin not found");
+  try {
+    await prisma.admin.delete({
+      where: { id },
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Admin deleted successfully"));
+
+  } catch (error) {
+    throw error; // Prisma cascade errors will be thrown automatically
   }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Admin deleted successfully"));
 });
 
-export { deleteAdminById, getAdminById, getAdminsWithStats, getAllAdmins, registerAdmin };
+
+
+export { deleteAdminById, getAdminById, getAllAdmins, registerAdmin };

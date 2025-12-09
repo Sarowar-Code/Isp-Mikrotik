@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,6 +9,8 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
+// --- SUPERADMIN MODEL ---
 
 model SuperAdmin {
   id           String   @id @default(uuid())
@@ -23,3 +22,72 @@ model SuperAdmin {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+// --- SUPERADMIN MODEL END ---
+
+// --- ADMIN MODEL AND RELATED MODELS ---
+
+enum UserStatus {
+  Active
+  Inactive
+  Suspended
+}
+
+enum PaymentStatus {
+  Paid
+  Pending
+  Due
+}
+
+model Admin {
+  id             String      @id @default(uuid())
+  fullName       String
+  username       String      @unique
+  email          String      @unique
+  password       String
+  avatar         String?
+  contact        String
+  whatsapp       String
+  nid            String
+  status         UserStatus  @default(Active)
+  refreshToken   String?     @db.Text
+  role           String      @default("Admin")
+
+  // Relational Fields (One-to-One)
+  address        Address?
+  paymentInfo    PaymentInfo?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("admins")
+}
+
+model Address {
+  id        Int    @id @default(autoincrement())
+  thana     String
+  district  String
+  division  String
+
+  // Relationship
+  adminId   String @unique
+  admin     Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_addresses")
+}
+
+model PaymentInfo {
+  id                Int           @id @default(autoincrement())
+  monthlyFee        Float         @default(0)
+  lastPaymentDate   DateTime?
+  nextPaymentDue    DateTime?
+  paymentStatus     PaymentStatus @default(Pending)
+
+  // Relationship
+  adminId           String        @unique
+  admin             Admin         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_payment_info")
+}
+
+// --- ADMIN MODEL END ---
