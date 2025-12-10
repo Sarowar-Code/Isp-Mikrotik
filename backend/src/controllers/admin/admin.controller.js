@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.ts";
+import { trimObject } from "../../services/trim.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -6,6 +7,8 @@ import { hashPassword } from "../../utils/auth.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 
 const registerAdmin = asyncHandler(async (req, res) => {
+  const body = trimObject(req.body);
+
   const {
     fullName,
     username,
@@ -15,7 +18,7 @@ const registerAdmin = asyncHandler(async (req, res) => {
     whatsapp,
     nid,
     address
-  } = req.body;
+  } = body;
 
   // basic validation
   if (!fullName || !username || !email || !password ||

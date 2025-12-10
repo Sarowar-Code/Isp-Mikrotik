@@ -10,6 +10,7 @@ const roleModel = {
 };
 
 export const generateAccessAndRefreshTokens = async (user) => {
+
   if (!user?.role) throw new ApiError(500, "User role missing");
 
   const model = roleModel[user.role.toLowerCase()];

@@ -19,7 +19,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
     let secret, user;
 
-    const authRole = decoded.role.toLowerCase()
+    const authRole = decoded.role.toLowerCase();
 
     switch (authRole) {
       case "superadmin":
