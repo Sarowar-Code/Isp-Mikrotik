@@ -1,4 +1,5 @@
-import { Admin } from "../../models/admin.model.js";
+import { prisma } from "../../lib/prisma.ts";
+import { trimObject } from "../../services/trim.service.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -16,10 +17,12 @@ const getCurretAdmin = asyncHandler(async (req, res) => {
 });
 
 const updateAdminAccountDetails = asyncHandler(async (req, res) => {
-  const { fullName, username, email, contact, whatsapp, nid, address } =
-    req.body;
+  const body = trimObject(req.body);
+  const { fullName, username, email, contact, whatsapp, nid, address } = body;
 
   let parsedAddress = null;
+
+  // Parse address if it arrives as string
   if (typeof address === "string") {
     try {
       parsedAddress = JSON.parse(address);
@@ -30,7 +33,7 @@ const updateAdminAccountDetails = asyncHandler(async (req, res) => {
     parsedAddress = address;
   }
 
-  // Build update object dynamically
+  // Build update fields
   const updateFields = {};
   if (fullName) updateFields.fullName = fullName;
   if (username) updateFields.username = username.toLowerCase();
@@ -39,71 +42,113 @@ const updateAdminAccountDetails = asyncHandler(async (req, res) => {
   if (whatsapp) updateFields.whatsapp = whatsapp;
   if (nid) updateFields.nid = nid;
 
-  // Handle partial address update
-  if (parsedAddress) {
-    const adminDoc = await Admin.findById(req.auth?._id).select("address");
-    if (!adminDoc) throw new ApiError(404, "Admin not found.");
+  const adminId = req.auth?.id;
 
-    updateFields.address = {
-      ...adminDoc.address.toObject(), // keep existing values
-      ...parsedAddress, // overwrite only provided props
-    };
+  // Check if user exists
+  const adminExists = await prisma.admin.findUnique({
+    where: { id: adminId },
+    include: { address: true },
+  });
+
+  if (!adminExists) {
+    throw new ApiError(404, "Admin not found.");
   }
 
-  // ✅ Check for duplicate email/username if updated
+  // Check for duplicate username/email
   if (email || username) {
-    const existing = await Admin.findOne({
-      $or: [{ email }, { username: username?.toLowerCase() }],
-      _id: { $ne: req.auth?._id },
+    const existing = await prisma.admin.findFirst({
+      where: {
+        AND: [
+          { id: { not: adminId } },
+          {
+            OR: [
+              email ? { email } : undefined,
+              username ? { username: username.toLowerCase() } : undefined,
+            ],
+          },
+        ],
+      },
     });
+
     if (existing) {
       throw new ApiError(409, "Email or username already in use.");
     }
   }
 
-  const admin = await Admin.findByIdAndUpdate(
-    req.auth?._id,
-    { $set: updateFields },
-    { new: true }
-  ).select("-password -refreshToken");
+  // Handle address update
+  if (parsedAddress) {
+    updateFields.address = {
+      update: {
+        ...parsedAddress,
+      },
+    };
+  }
 
-  if (!admin) throw new ApiError(404, "Admin not found.");
+  // Update admin
+  const updatedAdmin = await prisma.admin.update({
+    where: { id: adminId },
+    data: updateFields,
+    include: { address: true, paymentInfo: true },
+  });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, admin, "Admin updated successfully"));
+    .json(new ApiResponse(200, updatedAdmin, "Admin updated successfully"));
 });
 
 const updateAdminAvatar = asyncHandler(async (req, res) => {
-  // take user details from frontend **/
-
   const avatarLocalPath = req.file?.path;
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar image is missing");
   }
 
+  // Upload new image
   const avatar = await uploadOnCloudinary(avatarLocalPath);
 
   if (!avatar.url) {
     throw new ApiError(400, "Failed to upload avatar image");
   }
 
-  const admin = await Admin.findByIdAndUpdate(
-    req.auth?._id,
-    {
-      $set: {
-        avatar: avatar.url,
-      },
-    },
-    { new: true }
-  ).select("-password");
+  // Get old avatar to remove it later
+  const existingAdmin = await prisma.admin.findUnique({
+    where: { id: req.auth?.id },
+    select: { avatar: true },
+  });
 
-  // remove old avatar image from cloudinary
-  // use utility funcitions
+  if (!existingAdmin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  // Update avatar URL
+  const updatedAdmin = await prisma.admin.update({
+    where: { id: req.auth?.id },
+    data: { avatar: avatar.url },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      username: true,
+      avatar: true,
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  // OPTIONAL → Remove old cloudinary image
+  if (existingAdmin.avatar) {
+    try {
+      await deleteFromCloudinary(existingAdmin.avatar);
+    } catch (err) {
+      console.log("Failed to delete old avatar:", err.message);
+    }
+  }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, admin, "admin image updated successfully"));
+    .json(
+      new ApiResponse(200, updatedAdmin, "Admin image updated successfully")
+    );
 });
 
 export { getCurretAdmin, updateAdminAccountDetails, updateAdminAvatar };

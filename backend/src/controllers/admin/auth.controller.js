@@ -49,7 +49,6 @@ const loginAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { admin: adminData, accessToken, refreshToken }, "Admin logged in successfully"));
 });
 
-
 const logoutAdmin = asyncHandler(async (req, res) => {
   const adminId = req.auth?.id
   if (!adminId) {

@@ -81,6 +81,10 @@ const resellerSchema = new Schema(
         type: Number,
         default: 0,
       },
+      due: {
+        type: Number,
+        default: 0,
+      },
       lastPaymentDate: {
         type: Date,
       },

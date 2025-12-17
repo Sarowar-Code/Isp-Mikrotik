@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,7 +7,194 @@ datasource db {
   provider = "mysql"
 }
 
-// --- SUPERADMIN MODEL ---
+
+enum UserRole {
+  Admin
+  Reseller
+  Subscriber
+}
+
+enum UserStatus {
+  Active
+  Inactive
+  Suspended
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  DUE
+}
+
+enum ClientType {
+  home
+  corporate
+}
+
+enum ConnectionType {
+  shared
+  dedicated
+}
+
+enum ServiceType {
+  pppoe
+  hotspot
+  dhcp
+  static
+}
+
+enum RouterApiType {
+  api
+  ssl_api
+}
+
+enum RouterStatus {
+  active
+  inactive
+}
+
+enum SyncStatus {
+  synced
+  notSynced
+}
+
+enum BillingCycle {
+  monthly
+  yearly
+  custom
+}
+
+enum OnlyOne {
+  yes
+  no
+}
+
+enum PackageSyncStatus {
+  synced
+  pending
+  failed
+  notSynced
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum PayerType {
+  Admin
+  Reseller
+}
+
+enum ReceiverType {
+  Admin
+  SuperAdmin
+}
+
+enum PaymentMethod {
+  bkash
+  nagad
+  manual
+}
+
+enum WalletTransactionType {
+  RECHARGE
+  WITHDRAW
+}
+
+enum WalletPaymentMethod {
+  CASH
+  BKASH
+  NAGAD
+  BANK
+  MANUAL
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum NoticeAudience {
+  ADMIN
+  RESELLER
+  GLOBAL
+}
+
+enum AdminOperatorPermission {
+  // Reseller (Operational only)
+  VIEW_RESELLER
+  UPDATE_RESELLER_PROFILE
+  SUSPEND_RESELLER
+
+  // Subscriber
+  VIEW_SUBSCRIBER
+  CREATE_SUBSCRIBER
+  UPDATE_SUBSCRIBER
+  DISCONNECT_SUBSCRIBER
+
+  // Network / NOC
+  VIEW_ROUTER
+  SYNC_ROUTER
+  VIEW_ONU
+  DISABLE_ONU
+
+  // Billing
+  VIEW_PAYMENT
+  CREATE_PAYMENT
+  CONFIRM_PAYMENT
+  VIEW_WALLET
+  RECHARGE_WALLET
+
+  // Reports
+  VIEW_REPORT
+}
+
+model Address {
+  id          Int      @id @default(autoincrement())
+
+  thana       String
+  district    String
+  division    String
+
+  houseName   String?
+  street      String?
+
+  adminId     String?  @unique
+  resellerId  String?  @unique
+  subscriberId String? @unique
+
+  admin       Admin?       @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  reseller    Reseller?    @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  subscriber  Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model PaymentInfo {
+  id               Int           @id @default(autoincrement())
+
+  monthlyFee       Float         @default(0)
+  lastPaymentDate  DateTime?
+  nextPaymentDue   DateTime?
+  paymentStatus    PaymentStatus @default(PENDING)
+
+  adminId          String?  @unique
+  resellerId       String?  @unique
+  subscriberId     String?  @unique
+
+  admin            Admin?       @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  reseller         Reseller?    @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  subscriber       Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@map("payment_info")
+}
+
+
 
 model SuperAdmin {
   id           String   @id @default(uuid())
@@ -21,73 +205,428 @@ model SuperAdmin {
   role         String   @default("SuperAdmin")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-}
 
-// --- SUPERADMIN MODEL END ---
+  notices          Notice[]
+  paymentsConfirmed Payment[] @relation("PaymentConfirmedBy")
+  paymentsReceived  Payment[] @relation("SuperAdminPaymentsReceived")
 
-// --- ADMIN MODEL AND RELATED MODELS ---
-
-enum UserStatus {
-  Active
-  Inactive
-  Suspended
-}
-
-enum PaymentStatus {
-  Paid
-  Pending
-  Due
+  @@map("super_admins")
 }
 
 model Admin {
-  id             String      @id @default(uuid())
-  fullName       String
-  username       String      @unique
-  email          String      @unique
-  password       String
-  avatar         String?
-  contact        String
-  whatsapp       String
-  nid            String
-  status         UserStatus  @default(Active)
-  refreshToken   String?     @db.Text
-  role           String      @default("Admin")
+  id           String     @id @default(uuid())
+  fullName     String
+  username     String     @unique
+  email        String     @unique
+  password     String
+  avatar       String?
+  contact      String
+  whatsapp     String
+  nid          String
+  status       UserStatus @default(Active)
+  refreshToken String?    @db.Text
+  role         UserRole   @default(Admin)
 
-  // Relational Fields (One-to-One)
-  address        Address?
-  paymentInfo    PaymentInfo?
+  // Relations
+  resellers        Reseller[]
+  routers          Router[]
+  packages         Package[]
+  operators       AdminOperator[]
+  paymentsMade     Payment[] @relation("AdminPaymentsMade")
+  paymentsReceived Payment[] @relation("AdminPaymentsReceived")
+  walletTransactionsCreated   WalletTransaction[] @relation("WalletCreatedBy")
+  walletTransactionsProcessed WalletTransaction[] @relation("WalletProcessedBy")
 
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  address      Address?
+  paymentInfo  PaymentInfo?
+  subscription AdminSubscription?
+
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@map("admins")
 }
 
-model Address {
-  id        Int    @id @default(autoincrement())
-  thana     String
-  district  String
-  division  String
+model Reseller {
+  id           String       @id @default(uuid())
+  adminId      String
+  fullName     String
+  username     String       @unique
+  email        String       @unique
+  password     String
+  contact      String
+  whatsapp     String
+  nid          String
+  avatar       String?
+  status       UserStatus   @default(Active)
+  refreshToken String?      @db.Text
+  role         UserRole     @default(Reseller)
 
-  // Relationship
-  adminId   String @unique
-  admin     Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  // Relations
+  admin        Admin        @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  address      Address?
+  paymentInfo  PaymentInfo?
+  wallet Wallet?
+  walletTransactions WalletTransaction[]
+  subscribers  Subscriber[]
+  routers      Router[]
+  packages     Package[]
+  paymentsMade Payment[]    @relation("ResellerPaymentsMade")
 
-  @@map("admin_addresses")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([adminId])
+  @@map("resellers")
 }
 
-model PaymentInfo {
-  id                Int           @id @default(autoincrement())
-  monthlyFee        Float         @default(0)
-  lastPaymentDate   DateTime?
-  nextPaymentDue    DateTime?
-  paymentStatus     PaymentStatus @default(Pending)
+model Subscriber {
+  id               String          @id @default(uuid())
 
-  // Relationship
-  adminId           String        @unique
-  admin             Admin         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  resellerId       String
+  name             String
+  password         String
 
-  @@map("admin_payment_info")
+  contact          String
+  whatsapp         String
+  nid              String
+
+  clientType       ClientType      @default(home)
+  connectionType   ConnectionType  @default(shared)
+  service          ServiceType     @default(pppoe)
+
+  macAddress       String?         @default("")
+  packageId        String
+  packageName      String?
+
+  routerId String
+  router   Router @relation(fields: [routerId], references: [id], onDelete: Restrict)
+
+  isEnableOnRouter Boolean         @default(false)
+  lastSyncAt       DateTime?
+  syncStatus       SyncStatus      @default(notSynced)
+
+  address          Address?
+  paymentInfo      PaymentInfo?
+
+  reseller         Reseller        @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("subscribers")
 }
 
-// --- ADMIN MODEL END ---
+model Router {
+  id      String @id @default(uuid())
+
+  ownerId String
+  owner   Admin @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  assignedForId String?
+  assignedFor   Reseller? @relation(fields: [assignedForId], references: [id], onDelete: SetNull)
+
+  host     String
+  port     Int    @default(8728)
+  username String @unique
+  password String
+  apiType  RouterApiType @default(api)
+
+  identity String @default("")
+  version  String @default("")
+  board    String @default("")
+  uptime   String @default("")
+
+  vlanId Int?
+
+  isActive   Boolean      @default(true)
+  status     RouterStatus @default(active)
+  lastSeen   DateTime?
+  lastSyncAt DateTime?
+  syncError  String @default("")
+
+  notes String @default("")
+
+  subscribers Subscriber[]
+  packages    Package[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([assignedForId])
+}
+
+model Package {
+  id String @id @default(uuid())
+
+  // Ownership & relations
+  ownerId    String
+  resellerId String
+  routerId   String
+
+  owner    Admin    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  reseller Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  router   Router   @relation(fields: [routerId], references: [id], onDelete: Restrict)
+
+  // RouterOS fields
+  name          String
+  remoteAddress String
+  localAddress  String
+  onlyOne       OnlyOne @default(yes)
+  rateLimit     String  @default("")
+
+  // Commercial
+  price        Float         @default(0)
+  billingCycle BillingCycle @default(monthly)
+  isActive     Boolean       @default(true)
+  description  String        @default("")
+
+  // Timeouts
+  sessionTimeout String @default("0")
+  idleTimeout    String @default("0")
+
+  // Sync
+  syncStatus PackageSyncStatus @default(synced)
+  lastSyncAt DateTime?
+
+  // Relations
+  paymentPackages PaymentPackage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Unique package name per reseller
+  @@unique([resellerId, name])
+  @@index([routerId])
+  @@index([ownerId])
+  @@map("packages")
+}
+
+model SubscriptionPlan {
+  id String @id @default(uuid())
+
+  name         String @unique
+  price        Float
+  billingCycle BillingCycle
+
+  maxResellers Int
+  maxUsers     Int
+  maxRouters   Int
+
+  isActive     Boolean @default(true)
+  description  String?
+
+  subscriptions AdminSubscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription_plans")
+}
+
+model AdminSubscription {
+  id String @id @default(uuid())
+
+  adminId String
+  planId  String
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  plan  SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  status           SubscriptionStatus @default(pending)
+  priceAtPurchase  Float
+  startedAt        DateTime @default(now())
+  expiresAt        DateTime?
+
+  // Relations
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([adminId])
+  @@index([planId])
+  @@map("admin_subscriptions")
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  payerType PayerType
+  adminPayerId    String?
+  resellerPayerId String?
+
+  adminPayer Admin? @relation("AdminPaymentsMade", fields: [adminPayerId], references: [id], onDelete: Cascade)
+
+  resellerPayer Reseller? @relation("ResellerPaymentsMade", fields: [resellerPayerId], references: [id], onDelete: Cascade)
+
+  receiverType ReceiverType
+  adminReceiverId      String?
+  superAdminReceiverId String?
+
+  adminReceiver Admin? @relation("AdminPaymentsReceived", fields: [adminReceiverId], references: [id], onDelete: Restrict)
+
+  superAdminReceiver SuperAdmin? @relation("SuperAdminPaymentsReceived", fields: [superAdminReceiverId], references: [id], onDelete: Restrict)
+
+  adminSubscriptionId String?
+  adminSubscription AdminSubscription? @relation(fields: [adminSubscriptionId], references: [id], onDelete: Restrict)
+
+  amount           Float
+  paymentMethod    PaymentMethod @default(manual)
+  paymentMethodRef String?
+  status            PaymentStatus @default(PENDING)
+  notes             String?
+
+  // ─── CONFIRMATION ──────────────────────
+  confirmedBySuperAdminId String?
+  confirmedBy SuperAdmin? @relation("PaymentConfirmedBy", fields: [confirmedBySuperAdminId], references: [id])
+
+  // ─── LINE ITEMS ────────────────────────
+  packages PaymentPackage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([payerType])
+  @@index([receiverType])
+  @@map("payments")
+}
+
+model PaymentPackage {
+  id String @id @default(uuid())
+
+  paymentId String
+  packageId String
+
+  name String
+  price Float
+  userCount Int @default(0)
+  subtotal Float
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@map("payment_packages")
+}
+
+model Wallet {
+  id String @id @default(uuid())
+
+  resellerId String @unique
+  reseller   Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  balance   Float   @default(0)
+  currency  String  @default("BDT")
+
+  lastTopUp   DateTime @default(now())
+  lastBilling DateTime @default(now())
+
+  isActive Boolean @default(true)
+
+  lowBalanceThreshold Float @default(3000)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@index([isActive])
+  @@index([balance])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id String @id @default(uuid())
+
+  walletId   String
+  resellerId String
+
+  wallet   Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  reseller Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  createdByAdminId String
+  createdBy        Admin @relation("WalletCreatedBy", fields: [createdByAdminId], references: [id])
+
+  processedByAdminId String
+  processedBy        Admin @relation("WalletProcessedBy", fields: [processedByAdminId], references: [id])
+
+  amount Float
+
+  type WalletTransactionType
+
+  paymentMethod WalletPaymentMethod
+
+  status WalletTransactionStatus @default(PENDING)
+
+  transactionDate DateTime @default(now())
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resellerId, transactionDate])
+  @@index([status, transactionDate])
+  @@map("wallet_transactions")
+}
+
+model Notice {
+  id String @id @default(uuid())
+
+  title       String
+  description String
+
+  noticeFor NoticeAudience @default(GLOBAL)
+
+  createdById String?
+  createdBy   SuperAdmin? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([noticeFor])
+  @@map("notices")
+}
+
+model AdminOperator {
+  id String @id @default(uuid())
+
+  adminId String
+  admin   Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  name     String
+  email    String @unique
+  phone    String?
+
+  password String
+
+  status UserStatus @default(Active)
+
+  permissions AdminOperatorPermissionEntry[]
+
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([adminId])
+  @@map("admin_operators")
+}
+
+model AdminOperatorPermissionEntry {
+  id String @id @default(uuid())
+
+  adminOperatorId String
+  adminOperator   AdminOperator @relation(fields: [adminOperatorId], references: [id], onDelete: Cascade)
+
+  permission AdminOperatorPermission
+
+  createdAt DateTime @default(now())
+
+  @@unique([adminOperatorId, permission])
+  @@index([adminOperatorId])
+  @@map("admin_operator_permissions")
+}

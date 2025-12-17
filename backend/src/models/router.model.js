@@ -70,7 +70,7 @@ const routerSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive", "suspended"],
+      enum: ["active", "inactive"],
       default: "active",
     },
     lastSeen: {

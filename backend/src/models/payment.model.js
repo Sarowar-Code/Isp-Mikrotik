@@ -92,6 +92,8 @@ const paymentSchema = new Schema(
   { timestamps: true }
 );
 
+
+
 // Indexing for faster queries
 paymentSchema.index({ payerId: 1 }); // for admin search
 paymentSchema.index({ receiverId: 1 }); // for superadmin search
